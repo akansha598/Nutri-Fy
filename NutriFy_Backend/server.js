@@ -1,6 +1,7 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const { loadDataset } = require("./utils/loadDataset");
 require("dotenv").config();
 
 const app = express();
@@ -8,12 +9,24 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// ✅ Connect DB + Load Dataset + Start Server
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB Connected"))
+  .then(async () => {
+    console.log("MongoDB Connected");
+
+    // 🔥 IMPORTANT: Load dataset before starting server
+    await loadDataset();
+    console.log("Dataset loaded");
+
+    const PORT = process.env.PORT || 5000;
+
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  })
   .catch((err) => console.log(err));
 
+// Routes
 app.use("/api/auth", require("./routes/auth"));
-
-
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.use("/api/meals", require("./routes/meal"));
+app.use("/api/recommend", require("./routes/recommend"));
