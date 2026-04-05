@@ -5,7 +5,7 @@ let foodData = [];
 
 const loadDataset = () => {
   return new Promise((resolve, reject) => {
-    fs.createReadStream("data/daily_food_nutrition_dataset.csv")
+    fs.createReadStream("data/updated_food_nutrition.csv")
       .pipe(csv())
       .on("data", (row) => {
         foodData.push(row);

@@ -1,5 +1,17 @@
 const mongoose = require("mongoose");
 
+// 🔥 Sub-schema for each food item
+const foodSchema = new mongoose.Schema({
+  item: {
+    type: String,
+    required: true
+  },
+  quantity: {
+    type: Number,
+    default: 1
+  }
+});
+
 const mealSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -8,21 +20,14 @@ const mealSchema = new mongoose.Schema({
   },
   date: {
     type: Date,
-    required: true,
     default: Date.now
   },
-  breakfast: {
-    type: String,
-    required: true
-  },
-  lunch: {
-    type: String,
-    required: true
-  },
-  dinner: {
-    type: String,
-    required: true
-  }
+
+  // 🔥 Each meal is now an array of foods
+  breakfast: [foodSchema],
+  lunch: [foodSchema],
+  dinner: [foodSchema]
+
 }, { timestamps: true });
 
 module.exports = mongoose.model("Meal", mealSchema);

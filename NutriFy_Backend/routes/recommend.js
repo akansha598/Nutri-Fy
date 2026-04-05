@@ -6,42 +6,26 @@ const Meal = require("../models/Meal");
 const User = require("../models/User");
 const { calculateAverage } = require("../utils/nutrition");
 
-// POST /api/recommend
 router.post("/", async (req, res) => {
   try {
-    const {
-      email,
-      health_condition,
-      weight_kg,
-      height_cm,
-      age,
-      gender
-    } = req.body;
+    const { email, health_condition, weight_kg, height_cm, age, gender } = req.body;
 
-    // 1. Find user
+    // 1. Get user
     const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
+    if (!user) return res.status(404).json({ message: "User not found" });
 
-    // 2. Get last 7 days meals
-    const last7Days = new Date();
-    last7Days.setDate(last7Days.getDate() - 7);
-
-    const meals = await Meal.find({
-      userId: user._id,
-      date: { $gte: last7Days }
-    });
+    // 2. Get last 7 meals
+    const meals = await Meal.find({ userId: user._id }).sort({ createdAt: -1 }).limit(7);
 
     if (meals.length === 0) {
-      return res.status(400).json({ message: "No meals found for last 7 days" });
+      return res.status(400).json({ message: "No meals found" });
     }
 
     // 3. Calculate avg nutrition
     const avg = calculateAverage(meals);
 
-    // 4. Call FastAPI ML
-    const mlResponse = await axios.post("http://localhost:8000/recommend", {
+    // 4. Call FastAPI 🔥
+    const response = await axios.post("http://127.0.0.1:8000/recommend", {
       health_condition,
       weight_kg,
       height_cm,
@@ -50,11 +34,11 @@ router.post("/", async (req, res) => {
       avg
     });
 
-    // 5. Return result
-    res.json(mlResponse.data);
+    // 5. Return ML response
+    res.json(response.data);
 
   } catch (err) {
-    console.error(err);
+    console.error(err.message);
     res.status(500).json({ error: "Server error" });
   }
 });

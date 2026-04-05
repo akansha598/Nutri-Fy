@@ -8,16 +8,16 @@ router.post("/add", async (req, res) => {
   try {
     const { email, breakfast, lunch, dinner } = req.body;
 
-    // 🔥 1. Find user using email
     const user = await User.findOne({ email });
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // 🔥 2. Save meal with userId
     const meal = new Meal({
       userId: user._id,
+
+      // ✅ Directly store arrays
       breakfast,
       lunch,
       dinner
@@ -43,7 +43,7 @@ router.get("/:userId", async (req, res) => {
 
     const meals = await Meal.find({
       userId,
-      date: { $gte: last7Days }
+      createdAt: { $gte: last7Days }
     });
 
     res.json(meals);
