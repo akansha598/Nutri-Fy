@@ -31,8 +31,18 @@ class PredictInput(BaseModel):
 # HELPER FUNCTIONS
 # -----------------------------
 def encode_condition(condition):
-    conditions = ["diabetes", "pcod", "hypertension", "obesity", "healthy"]
-    return conditions.index(condition.lower()) if condition.lower() in conditions else 4
+    """
+    Encodes the condition for the ML model. 
+    Matches the expanded list of supported health issues.
+    """
+    conditions = [
+        "diabetes", "pcod", "pcos", "hypertension", "bp", 
+        "obesity", "muscle_gain", "thyroid", "ckd", 
+        "kidney_disease", "heart_disease", "cvd", 
+        "high_cholesterol", "hyperthyroidism", "underweight", "healthy"
+    ]
+    cond_lower = condition.lower()
+    return conditions.index(cond_lower) if cond_lower in conditions else conditions.index("healthy")
 
 def generate_smart_diet_plan(delta, final_target, current_avg, condition):
     """
@@ -49,12 +59,23 @@ def generate_smart_diet_plan(delta, final_target, current_avg, condition):
         else:
             status[macro] = "On Track"
 
-    # 2. Medical Condition Tips
+    # 2. Medical Condition Tips (Expanded for all new issues)
     tips = {
         "diabetes": "Focus on low-glycemic, high-fiber carbs to stabilize blood sugar levels.",
         "pcod": "Prioritize lean proteins and anti-inflammatory healthy fats to balance hormones.",
+        "pcos": "Prioritize lean proteins and anti-inflammatory healthy fats to balance hormones.",
         "hypertension": "Keep sodium low and prioritize potassium-rich vegetables (leafy greens, potatoes).",
+        "bp": "Keep sodium low and prioritize potassium-rich vegetables (leafy greens, potatoes).",
         "obesity": "Incorporate high-volume, low-calorie foods to improve satiety.",
+        "muscle_gain": "Ensure adequate caloric surplus and high protein intake for muscle repair.",
+        "thyroid": "Include adequate complex carbohydrates to support thyroid hormone conversion.",
+        "ckd": "Strictly monitor protein intake to reduce workload on the kidneys.",
+        "kidney_disease": "Strictly monitor protein intake to reduce workload on the kidneys.",
+        "heart_disease": "Limit saturated fats and sodium to protect cardiovascular health.",
+        "cvd": "Limit saturated fats and sodium to protect cardiovascular health.",
+        "high_cholesterol": "Increase soluble fiber and limit dietary cholesterol and trans fats.",
+        "hyperthyroidism": "Significantly increase caloric and protein intake to prevent muscle wasting.",
+        "underweight": "Focus on nutrient-dense, calorie-rich foods to reach a healthy weight.",
         "healthy": "Maintain a diverse intake of whole grains, lean proteins, and colorful vegetables."
     }
 
@@ -65,7 +86,6 @@ def generate_smart_diet_plan(delta, final_target, current_avg, condition):
     }
 
     # 3. Generating 3 items based on the Delta
-    # Ensure recommend_food(delta) is updated to return a LIST of 3 objects
     top_items = recommend_food(delta) 
 
     if isinstance(top_items, list):
@@ -76,7 +96,6 @@ def generate_smart_diet_plan(delta, final_target, current_avg, condition):
                 "insight": f"This item helps optimize your nutrition while managing {condition}."
             })
     else:
-        # Fallback in case logic in model.py isn't a list
         plan["suggestions"].append({
             "option_number": 1,
             "food_details": top_items,
@@ -101,9 +120,9 @@ def get_recommendation(data: InputData):
     )
 
     baseline_norm = {
-        "protein": baseline.get("Target_Protein_g", baseline.get("Max_Protein_g", 0)),
-        "carbs": baseline.get("Target_Carbs_g", baseline.get("Max_Carbs_g", 0)),
-        "fat": baseline.get("Target_Fat_g", baseline.get("Max_Fat_g", 0))
+        "protein": baseline.get("Target_Protein_g", 0),
+        "carbs": baseline.get("Target_Carbs_g", 0),
+        "fat": baseline.get("Target_Fat_g", 0)
     }
 
     # 2. ML PREDICTION
