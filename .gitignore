@@ -8,6 +8,7 @@ node_modules/
 # Build folders
 dist/
 build/
+<<<<<<< HEAD
 .next/
 out/
 
@@ -38,3 +39,6 @@ __pycache__/
 # Misc
 coverage/
 .cache/
+=======
+venv/
+>>>>>>> 8a6639a (added venv to gitignore)
