@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const { loadDataset } = require("./utils/loadDataset");
 const foodItemsRoute = require("./routes/fooditems"); // Adjust path if necessary
+const trackMealRoutes = require("./routes/trackMeal");
 
 require("dotenv").config();
 
@@ -33,3 +34,4 @@ app.use("/api/auth", require("./routes/auth"));
 app.use("/api/meals", require("./routes/meal"));
 app.use("/api/recommend", require("./routes/recommend"));
 app.use("/api/fooditems", foodItemsRoute);
+app.use("/api/track", trackMealRoutes);
