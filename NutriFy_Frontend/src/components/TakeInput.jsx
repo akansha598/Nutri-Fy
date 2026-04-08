@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { toast } from 'react-toastify';
+import {useSelector} from 'react-redux';
 
 // Component for an individual food entry row
 const FoodItemEntry = ({ item, quantity, onUpdate, onRemove, listId }) => (
@@ -36,14 +38,157 @@ const FoodItemEntry = ({ item, quantity, onUpdate, onRemove, listId }) => (
   </div>
 );
 
+const MealSection = ({
+  mealType,
+  title,
+  emoji,
+  meals,
+  addEntry,
+  removeEntry,
+  updateEntry,
+  mealDescriptions,
+  handleDescriptionChange,
+  parsing,
+  handleParseDescription,
+  parsedItems,
+  confirmParsedItem
+}) => (
+  <div className='bg-white p-6 rounded-xl shadow-md mb-6 border-l-4 border-green-500'>
+    <h3 className='text-2xl font-bold text-gray-800 mb-6'>{emoji} {title}</h3>
+
+    {/* Manual Input Section */}
+    <div className='mb-8'>
+      <h4 className='text-lg font-semibold text-gray-700 mb-3 flex items-center gap-2'>
+        <span className='w-2 h-2 bg-blue-500 rounded-full'></span>
+        Manual Input
+      </h4>
+      {meals[mealType].map((entry, idx) => (
+        <FoodItemEntry
+          key={`${mealType}-${idx}`}
+          item={entry.item}
+          quantity={entry.quantity}
+          listId="food-suggestions"
+          onUpdate={(field, val) => updateEntry(mealType, idx, field, val)}
+          onRemove={() => removeEntry(mealType, idx)}
+        />
+      ))}
+      <button
+        type='button'
+        onClick={() => addEntry(mealType)}
+        className='mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors'
+      >
+        + Add Item
+      </button>
+    </div>
+
+    {/* AI Description Parser Section */}
+    <div className='border-t pt-8'>
+      <h4 className='text-lg font-semibold text-gray-700 mb-3 flex items-center gap-2'>
+        <span className='w-2 h-2 bg-green-500 rounded-full'></span>
+        Or Describe Your Meal (AI Powered)
+      </h4>
+      <textarea
+        name={`${mealType}-description`}
+        value={mealDescriptions[mealType] || ''}
+        onChange={(e) => handleDescriptionChange(mealType, e.target.value)}
+        placeholder={`E.g., "I ate Doodh Daliya with high sweetness and 1 bowl of daliya with onion peas cucumber vegetables in it, plus a glass of milk"`}
+        className='w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-400 outline-none text-black mb-3 bg-white resize-vertical'
+        rows={4}
+        spellCheck='true'
+        autoComplete='off'
+      />
+      <button
+        type='button'
+        onClick={() => handleParseDescription(mealType)}
+        disabled={parsing[mealType]}
+        className='px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:bg-gray-400 transition-colors font-semibold flex items-center gap-2'
+      >
+        {parsing[mealType] ? (
+          <>
+            <span className='animate-spin'>⏳</span>
+            Parsing...
+          </>
+        ) : (
+          <>
+            <span>✨</span>
+            Parse with AI
+          </>
+        )}
+      </button>
+    </div>
+
+    {/* Parsed Results Preview */}
+    {parsedItems[mealType].length > 0 && (
+      <div className='border-t pt-8 mt-8'>
+        <h4 className='text-lg font-semibold text-green-700 mb-4 flex items-center gap-2'>
+          <span className='text-green-500'>🎯</span>
+          AI Detected {parsedItems[mealType].length} Item{parsedItems[mealType].length !== 1 ? 's' : ''}
+        </h4>
+        <div className='space-y-3'>
+          {parsedItems[mealType].map((item, idx) => (
+            <div key={idx} className='bg-green-50 p-4 rounded-lg border-2 border-green-200 hover:border-green-400 transition-colors'>
+              <div className='flex justify-between items-start gap-4'>
+                <div className='flex-1'>
+                  <p className='font-bold text-gray-800 text-lg'>{item.parsed_food_name || item.matched_food_name}</p>
+                  <p className='text-sm text-gray-600 mt-1'>
+                    📦 {item.quantity} {item.unit} {item.description ? `• ${item.description}` : ''}
+                  </p>
+                  <div className='flex gap-4 mt-2 text-xs'>
+                    <span className='text-blue-600 font-semibold'>Source: {item.source || 'API'}</span>
+                    <span className='text-purple-600 font-semibold'>AI Confidence: {(item.confidence * 100).toFixed(0)}%</span>
+                  </div>
+                  <div className='flex gap-4 mt-2 text-sm font-semibold text-gray-700'>
+                    <span>🔥 {item.nutrition.calories} cal</span>
+                    <span>🥬 {item.nutrition.protein}g protein</span>
+                    <span>🍚 {item.nutrition.carbs}g carbs</span>
+                    <span>🧈 {item.nutrition.fat}g fat</span>
+                  </div>
+                </div>
+                <button
+                  type='button'
+                  onClick={() => confirmParsedItem(mealType, item, idx)}
+                  className='flex-shrink-0 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-semibold whitespace-nowrap'
+                >
+                  ✓ Add
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+  </div>
+);
+
 const TakeInput = () => {
+  const { currentUser } = useSelector((state) => state.user);
   const [meals, setMeals] = useState({
     breakfast: [{ item: '', quantity: 1 }],
     lunch: [{ item: '', quantity: 1 }],
     dinner: [{ item: '', quantity: 1 }]
   });
   
-  // foodList now expects an array of objects: { cleanName, displayString }
+  // 🆕 State for text descriptions
+  const [mealDescriptions, setMealDescriptions] = useState({
+    breakfast: '',
+    lunch: '',
+    dinner: ''
+  });
+
+  // 🆕 State for parsed items from AI
+  const [parsedItems, setParsedItems] = useState({
+    breakfast: [],
+    lunch: [],
+    dinner: []
+  });
+
+  // 🆕 Loading state for parsing
+  const [parsing, setParsing] = useState({
+    breakfast: false,
+    lunch: false,
+    dinner: false
+  });
+  
   const [foodList, setFoodList] = useState([]);
 
   useEffect(() => {
@@ -84,52 +229,137 @@ const TakeInput = () => {
     });
   };
 
-  const handleSubmit = async () => {
-    // 1. Extract valid items for check
-    const allItems = [...meals.breakfast, ...meals.lunch, ...meals.dinner].filter(f => f.item);
-    
-    // 2. Validate against the cleanNames in our foodList
-    const validNames = foodList.map(f => f.cleanName);
-    const invalidItems = allItems.filter(entry => !validNames.includes(entry.item));
+  const handleDescriptionChange = (mealType, value) => {
+    setMealDescriptions(prev => ({
+      ...prev,
+      [mealType]: value
+    }));
+  };
 
-    if (invalidItems.length > 0) {
-      alert(`The following items must be selected from the suggestions: ${invalidItems.map(i => i.item).join(", ")}`);
+  // 🆕 Handle meal description parsing with Gemini
+  const handleParseDescription = async (mealType) => {
+    const description = mealDescriptions[mealType] || '';
+    const trimmed = description.trim();
+
+    if (!trimmed) {
+      toast.warning("Please enter a meal description before parsing.");
       return;
     }
 
-    // 3. Prepare data (sending clean names only)
+    const containsFoodWord = /[a-zA-Z]/.test(trimmed);
+    if (!containsFoodWord) {
+      toast.warning("Please include food names like 'idli', 'rice', or 'dal' in your description.");
+      return;
+    }
+
+    setParsing(prev => ({ ...prev, [mealType]: true }));
+
+    try {
+      const response = await axios.post("/api/parse-meal-description", {
+        description: trimmed,
+        mealType
+      });
+
+      if (response.data.items && response.data.items.length > 0) {
+        setParsedItems(prev => ({
+          ...prev,
+          [mealType]: response.data.items
+        }));
+        toast.success(`✨ Parsed ${response.data.total_items_matched} items from description`);
+      } else {
+        toast.info("No foods matched. Try a more complete description like '2 idli and 1 cup rice'.");
+      }
+    } catch (error) {
+      const message = error.response?.data?.error || error.message || "Unknown error";
+      console.error("Parse request failed", error);
+      toast.error("Failed to parse description: " + message);
+    } finally {
+      setParsing(prev => ({ ...prev, [mealType]: false }));
+    }
+  };
+
+  // 🆕 Add parsed item to manual items
+  const confirmParsedItem = (mealType, parsedItem, indexInArray) => {
+    setMeals(prev => ({
+      ...prev,
+      [mealType]: [
+        ...prev[mealType],
+        {
+          item: parsedItem.parsed_food_name || parsedItem.matched_food_name,
+          quantity: parsedItem.quantity,
+          source: 'parsed'
+        }
+      ]
+    }));
+
+    // Remove from parsed list
+    setParsedItems(prev => ({
+      ...prev,
+      [mealType]: prev[mealType].filter((_, idx) => idx !== indexInArray)
+    }));
+
+    toast.info("✓ Added to " + mealType);
+  };
+
+  const handleSubmit = async () => {
+    // 1. Extract valid items for check (exclude AI-parsed items from validation)
+    const userEmail = currentUser?.user?.email || currentUser?.email;
+    const allItems = [...meals.breakfast, ...meals.lunch, ...meals.dinner].filter(f => f.item);
+    const manualItems = allItems.filter(entry => entry.source !== 'parsed');
+
+    // 2. Validate manual items against the cleanNames in our foodList
+    const validNames = foodList.map(f => f.cleanName);
+    const invalidItems = manualItems.filter(entry => !validNames.includes(entry.item));
+
+    if (invalidItems.length > 0) {
+      toast.error(`The following items must be selected from the suggestions: ${invalidItems.map(i => i.item).join(", ")}`);
+      return;
+    }
+
+    if (allItems.length === 0) {
+      toast.warning("Please add at least one food item");
+      return;
+    }
+
+    // 3. Prepare data (sending clean names only + descriptions)
     const mealData = {
-      email: "test@example.com",
-      breakfast: meals.breakfast.filter(f => f.item).map(f => ({ item: f.item, quantity: f.quantity })),
-      lunch: meals.lunch.filter(f => f.item).map(f => ({ item: f.item, quantity: f.quantity })),
-      dinner: meals.dinner.filter(f => f.item).map(f => ({ item: f.item, quantity: f.quantity }))
+      email: userEmail,
+      breakfast: meals.breakfast.filter(f => f.item).map(f => ({ item: f.item, quantity: f.quantity, source: f.source || 'manual' })),
+      lunch: meals.lunch.filter(f => f.item).map(f => ({ item: f.item, quantity: f.quantity, source: f.source || 'manual' })),
+      dinner: meals.dinner.filter(f => f.item).map(f => ({ item: f.item, quantity: f.quantity, source: f.source || 'manual' })),
+      meal_descriptions: mealDescriptions
     };
 
     // 4. Log for inspection
-    console.log("CLEAN MEAL DATA PREPARED FOR DATABASE:", mealData);
-
-    // 5. User confirmation
-    const confirmSave = window.confirm("Data is logged in the console. Do you want to save these clean names to the database?");
-    
-    if (!confirmSave) return;
+    console.log("MEAL DATA PREPARED (Manual + AI Parsed):", mealData);
 
     try {
       const response = await axios.post("api/meals/add", mealData);
       if (response.data) {
-        alert("Success! Your daily meals have been logged.");
+        toast.success("✅ Success! Your daily meals have been logged.");
         setMeals({
           breakfast: [{ item: '', quantity: 1 }],
           lunch: [{ item: '', quantity: 1 }],
           dinner: [{ item: '', quantity: 1 }]
         });
+        setMealDescriptions({
+          breakfast: '',
+          lunch: '',
+          dinner: ''
+        });
+        setParsedItems({
+          breakfast: [],
+          lunch: [],
+          dinner: []
+        });
       }
     } catch (error) {
-      alert(error.response?.data?.error || "Error connecting to server.");
+      toast.error(error.response?.data?.error || "Error connecting to server.");
     }
   };
 
   return (
-    <div className='w-full bg-white py-12 px-4'>
+    <div className='w-full bg-gradient-to-br from-gray-50 to-gray-100 py-12 px-4'>
       {/* Datalist logic: 
           'value' attribute is what gets filled in the input (cleanName).
           The user sees the displayString (with weight) in the dropdown list.
@@ -142,43 +372,65 @@ const TakeInput = () => {
         ))}
       </datalist>
 
-      <div className='max-w-[800px] mx-auto'>
-        <h1 className='text-3xl font-bold mb-2 text-center text-gray-800'>Log Daily Meals</h1>
-        <p className='text-gray-500 mb-8 text-center'>Select items from suggestions. Weights are shown but not saved.</p>
+      <div className='max-w-[1000px] mx-auto'>
+        <h1 className='text-4xl font-bold mb-2 text-center text-gray-800'>📝 Log Your Daily Meals</h1>
+        <p className='text-gray-600 mb-8 text-center text-lg'>Use manual input OR describe your meal - AI will do the rest!</p>
 
-        <div className='bg-gray-50 p-6 md:p-10 rounded-2xl shadow-lg border border-gray-100'>
-          {['breakfast', 'lunch', 'dinner'].map((type) => (
-            <div key={type} className="mb-8 last:mb-0">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold capitalize text-gray-700">{type}</h2>
-                <button 
-                  onClick={() => addEntry(type)}
-                  className="text-sm bg-green-100 text-green-700 px-3 py-1 rounded-full hover:bg-green-200 transition-colors"
-                >
-                  + Add Item
-                </button>
-              </div>
-              
-              {meals[type].map((entry, index) => (
-                <FoodItemEntry
-                  key={`${type}-${index}`}
-                  item={entry.item}
-                  quantity={entry.quantity}
-                  listId="food-suggestions"
-                  onUpdate={(field, val) => updateEntry(type, index, field, val)}
-                  onRemove={() => removeEntry(type, index)}
-                />
-              ))}
-            </div>
-          ))}
-
-          <button
-            onClick={handleSubmit}
-            className='w-full mt-8 bg-green-500 text-white py-4 rounded-xl font-bold text-lg hover:bg-green-600 shadow-xl transition-all active:scale-95'
-          >
-            See Response & Save Clean Data
-          </button>
+        <div className='space-y-2'>
+          <MealSection
+          mealType='breakfast'
+          title='Breakfast'
+          emoji='🌅'
+          meals={meals}
+          addEntry={addEntry}
+          removeEntry={removeEntry}
+          updateEntry={updateEntry}
+          mealDescriptions={mealDescriptions}
+          handleDescriptionChange={handleDescriptionChange}
+          parsing={parsing}
+          handleParseDescription={handleParseDescription}
+          parsedItems={parsedItems}
+          confirmParsedItem={confirmParsedItem}
+        />
+        <MealSection
+          mealType='lunch'
+          title='Lunch'
+          emoji='🍽️'
+          meals={meals}
+          addEntry={addEntry}
+          removeEntry={removeEntry}
+          updateEntry={updateEntry}
+          mealDescriptions={mealDescriptions}
+          handleDescriptionChange={handleDescriptionChange}
+          parsing={parsing}
+          handleParseDescription={handleParseDescription}
+          parsedItems={parsedItems}
+          confirmParsedItem={confirmParsedItem}
+        />
+        <MealSection
+          mealType='dinner'
+          title='Dinner'
+          emoji='🌙'
+          meals={meals}
+          addEntry={addEntry}
+          removeEntry={removeEntry}
+          updateEntry={updateEntry}
+          mealDescriptions={mealDescriptions}
+          handleDescriptionChange={handleDescriptionChange}
+          parsing={parsing}
+          handleParseDescription={handleParseDescription}
+          parsedItems={parsedItems}
+          confirmParsedItem={confirmParsedItem}
+        />
         </div>
+
+        <button
+          type='button'
+          onClick={handleSubmit}
+          className='w-full mt-8 px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl font-bold text-lg hover:from-blue-700 hover:to-blue-800 shadow-xl transition-all active:scale-95'
+        >
+          💾 Save All Meals
+        </button>
       </div>
     </div>
   );

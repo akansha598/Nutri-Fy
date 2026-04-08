@@ -8,7 +8,7 @@ node_modules/
 # Build folders
 dist/
 build/
-<<<<<<< HEAD
+venv/
 .next/
 out/
 
