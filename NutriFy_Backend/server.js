@@ -2,6 +2,8 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const { loadDataset } = require("./utils/loadDataset");
+const foodItemsRoute = require("./routes/fooditems"); // Adjust path if necessary
+
 require("dotenv").config();
 
 const app = express();
@@ -30,3 +32,4 @@ mongoose.connect(process.env.MONGO_URI)
 app.use("/api/auth", require("./routes/auth"));
 app.use("/api/meals", require("./routes/meal"));
 app.use("/api/recommend", require("./routes/recommend"));
+app.use("/api/fooditems", foodItemsRoute);
