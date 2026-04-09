@@ -30,18 +30,30 @@ def recommend_food(delta):
     # Return top 5 to give app.py more variety to pick from
     return suggestions
 
+# --- Update get_vitamin_rich_food in model.py ---
+
 def get_vitamin_rich_food(nutrient_column):
-    """Finds a top-5 item for a vitamin to ensure variety."""
+    """Finds a top-tier item specifically high in the missing nutrient."""
     if nutrient_column not in df.columns:
         return None
     
-    # ✅ Pick from the top 5 highest instead of just the #1 item
-    top_items = df.sort_values(by=nutrient_column, ascending=False).head(5)
-    selected = top_items.sample(1).iloc[0] 
+    # 1. PRE-FILTER: Only look at foods that are in the TOP 20% for this nutrient
+    # This prevents the model from recommending "Low-Vitamin" items
+    threshold = df[nutrient_column].quantile(0.8)
+    viable_foods = df[df[nutrient_column] >= threshold]
+
+    # 2. If no foods meet the 80th percentile (rare), fallback to top 5
+    if viable_foods.empty:
+        viable_foods = df.sort_values(by=nutrient_column, ascending=False).head(5)
+
+    # 3. Sample from the viable pool to keep the diet plan interesting
+    selected = viable_foods.sample(1).iloc[0] 
     
     return {
         "food": selected["Food_Item"],
         "protein": float(selected["Protein (g)"]),
         "carbs": float(selected["Carbohydrates (g)"]),
-        "fat": float(selected["Fat (g)"])
+        "fat": float(selected["Fat (g)"]),
+        # Add the specific nutrient value so the test script can verify it
+        nutrient_column: float(selected[nutrient_column]) 
     }

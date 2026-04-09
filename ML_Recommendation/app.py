@@ -37,10 +37,26 @@ def generate_smart_diet_plan(delta, final_target, current_avg, condition):
     """
     Constructs a structured meal plan using Health Tips to justify Macro Targets.
     """
-    # 1. Identify Vitamin Deficiencies
-    vitamin_cols = ['vitamin_c_mg', 'iron_mg', 'fiber_g', 'calcium_mg', 
-                    'potassium_mg', 'vitamin_d_mcg', 'magnesium_mg', 'zinc_mg']
-    missing_nutrients = [col for col in vitamin_cols if current_avg.get(col, 0) < 0.5]
+    # 1. Define Real RDA Targets (Daily requirements)
+    rda_targets = {
+        'vitamin_c_mg': 75.0,
+        'iron_mg': 18.0,
+        'fiber_g': 25.0,
+        'calcium_mg': 1000.0,
+        'potassium_mg': 3500.0,
+        'vitamin_d_mcg': 15.0,
+        'magnesium_mg': 310.0,
+        'zinc_mg': 8.0
+    }
+
+    # 2. Trigger deficiency if user is below 70% of the RDA
+    # This provides a 'Buffer Zone' to improve Precision/Recall balance
+    missing_nutrients = [
+        col for col, target in rda_targets.items() 
+        if current_avg.get(col, 0) < (target * 0.7)
+    ]
+
+    # Fallback if the user is eating perfectly (to keep recommendations variety)
     if not missing_nutrients:
         missing_nutrients = ["fiber_g", "vitamin_c_mg", "iron_mg", "calcium_mg"]
 
