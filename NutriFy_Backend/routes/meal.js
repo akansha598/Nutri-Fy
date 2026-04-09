@@ -6,7 +6,7 @@ const User = require("../models/User");
 // Add meal
 router.post("/add", async (req, res) => {
   try {
-    const { email, breakfast, lunch, dinner } = req.body;
+    const { email, breakfast, lunch, dinner, meal_descriptions } = req.body;
 
     const user = await User.findOne({ email });
 
@@ -20,7 +20,14 @@ router.post("/add", async (req, res) => {
       // ✅ Directly store arrays
       breakfast,
       lunch,
-      dinner
+      dinner,
+      
+      // 🆕 Store meal descriptions if provided
+      meal_descriptions: meal_descriptions || {
+        breakfast_text: '',
+        lunch_text: '',
+        dinner_text: ''
+      }
     });
 
     await meal.save();
