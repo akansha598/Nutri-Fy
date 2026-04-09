@@ -35,3 +35,4 @@ app.use("/api/meals", require("./routes/meal"));
 app.use("/api/recommend", require("./routes/recommend"));
 app.use("/api/fooditems", foodItemsRoute);
 app.use("/api/track", trackMealRoutes);
+app.use("/api/parse-meal-description", require("./routes/mealParser"));
