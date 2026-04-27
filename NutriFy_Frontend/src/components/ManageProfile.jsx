@@ -63,7 +63,7 @@ const ManageProfile = () => {
           </p>
 
           <button
-            onClick={() => navigate("/tracking")}
+            onClick={() => navigate("/track-profile")}
             className="w-full bg-green-600 text-white py-2 rounded-md hover:bg-green-700 transition"
           >
             View Tracking
