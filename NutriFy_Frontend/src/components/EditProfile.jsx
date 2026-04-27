@@ -1,0 +1,189 @@
+import React, { useState, useEffect } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { useNavigate } from "react-router-dom";
+import { signInSuccess } from "../redux/user/userSlice";
+
+const EditProfile = () => {
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+
+  const { currentUser } = useSelector((state) => state.user);
+
+  const [user, setUser] = useState({
+    name: "",
+    email: "",
+    age: "",
+    weight: "",
+    health_condition: ""
+  });
+
+  // ✅ Prefill from Redux
+  useEffect(() => {
+    if (currentUser) {
+      setUser({
+        name: currentUser.name || "",
+        email: currentUser.email || "",
+        age: currentUser.age || "",
+        weight: currentUser.weight || "",
+        health_condition: currentUser.health_condition || ""
+      });
+    }
+  }, [currentUser]);
+
+  // ✅ Handle input
+  const handleChange = (e) => {
+    setUser({
+      ...user,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  // ✅ Save to backend + Redux
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    try {
+      const res = await fetch("/api/auth/update-profile", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: user.email,
+          age: user.age,
+          weight_kg: user.weight,   // ✅ match backend
+          health_condition: user.health_condition
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.error || "Update failed");
+        return;
+      }
+
+      // ✅ Update Redux with new data
+      dispatch(signInSuccess(data.user));
+
+      alert("Profile Updated Successfully!");
+
+      // ✅ Navigate back
+      navigate("/profile");
+
+    } catch (err) {
+      console.error(err);
+      alert("Something went wrong!");
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-green-900 px-4">
+      <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-md">
+
+        <button
+          onClick={() => navigate("/profile")}
+          className="mb-4 text-sm text-green-700 hover:underline"
+        >
+          ← Back
+        </button>
+
+        <h2 className="text-2xl font-bold text-center text-green-700 mb-6">
+          Edit Profile
+        </h2>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+
+          {/* Name */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">
+              Name
+            </label>
+            <input
+              type="text"
+              name="name"
+              value={user.name}
+              onChange={handleChange}
+              className="w-full border px-4 py-2 rounded-md"
+            />
+          </div>
+
+          {/* Email */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">
+              Email
+            </label>
+            <input
+              type="email"
+              name="email"
+              value={user.email}
+              onChange={handleChange}
+              className="w-full border px-4 py-2 rounded-md"
+            />
+          </div>
+
+          {/* Age */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">
+              Age
+            </label>
+            <input
+              type="number"
+              name="age"
+              value={user.age}
+              onChange={handleChange}
+              className="w-full border px-4 py-2 rounded-md"
+            />
+          </div>
+
+          {/* Weight */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">
+              Weight (kg)
+            </label>
+            <input
+              type="number"
+              name="weight"
+              value={user.weight}
+              onChange={handleChange}
+              className="w-full border px-4 py-2 rounded-md"
+            />
+          </div>
+
+          {/* Health Condition */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">
+              Health Condition
+            </label>
+
+            <select
+              name="health_condition"
+              value={user.health_condition}
+              onChange={handleChange}
+              className="w-full border px-4 py-2 rounded-md"
+            >
+              <option value="">Select Health Condition</option>
+              <option value="none">None</option>
+              <option value="diabetes">Diabetes</option>
+              <option value="hypertension">Hypertension</option>
+              <option value="heart_disease">Heart Disease</option>
+              <option value="thyroid">Thyroid</option>
+              <option value="obesity">Obesity</option>
+              <option value="underweight">Underweight</option>
+            </select>
+          </div>
+
+          <button
+            type="submit"
+            className="w-full bg-green-600 text-white py-2 rounded-md hover:bg-green-700"
+          >
+            Save Changes
+          </button>
+
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default EditProfile;

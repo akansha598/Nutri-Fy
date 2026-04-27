@@ -38,9 +38,24 @@ export default function SignIn() {
         return toast.error(data.message);
       }
 
-      dispatch(signInSuccess(data));
+      // ✅ FIXED: Include ALL backend fields properly
+      const userData = {
+        name: data.name || "",
+        email: data.email || "",
+        age: data.age || "",
+        weight: data.weight || "",
+        height: data.height || "",
+        health_condition: data.health_condition || "", // ✅ ADDED
+        gender: data.gender || ""
+      };
+
+      dispatch(signInSuccess(userData));
+
+      console.log("Saved in Redux:", userData);
+
       toast.success("Welcome back to NutriFy! 💚");
       navigate('/');
+
     } catch (err) {
       dispatch(signInFailure(err.message));
       toast.error('Network error. Please try again.');

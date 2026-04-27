@@ -11,28 +11,29 @@ router.patch("/update-profile", async (req, res) => {
     const { email, age, weight_kg, height_cm, health_condition } = req.body;
 
     if (!email) {
-      return res.status(400).json({ error: "Email is required to identify the user" });
+      return res.status(400).json({ error: "Email is required" });
     }
 
-    // 1. Find the user and update only the provided fields
+    // ✅ Build update object safely
+    const updateFields = {};
+
+    if (age !== undefined) updateFields.age = age;
+    if (weight_kg !== undefined) updateFields.weight_kg = weight_kg;
+    if (height_cm !== undefined) updateFields.height_cm = height_cm;
+    if (health_condition !== undefined) updateFields.health_condition = health_condition;
+
+    // ✅ Update user
     const updatedUser = await User.findOneAndUpdate(
       { email: email.toLowerCase() },
-      { 
-        $set: { 
-          // We use the short-hand to only update if the value exists in req.body
-          ...(age && { age }),
-          ...(weight_kg && { weight_kg }),
-          ...(height_cm && { height_cm }),
-          ...(health_condition && { health_condition })
-        } 
-      },
-      { new: true, runValidators: true } // 'new' returns the updated doc, 'runValidators' checks schema rules
+      { $set: updateFields },
+      { new: true, runValidators: true }
     );
 
     if (!updatedUser) {
       return res.status(404).json({ error: "User not found" });
     }
 
+    // ✅ Send updated user back
     res.json({
       success: true,
       message: "Profile updated successfully",
@@ -40,15 +41,18 @@ router.patch("/update-profile", async (req, res) => {
         name: updatedUser.name,
         email: updatedUser.email,
         age: updatedUser.age,
-        weight_kg: updatedUser.weight_kg,
-        height_cm: updatedUser.height_cm,
+        weight: updatedUser.weight_kg, // ✅ match frontend
+        height: updatedUser.height_cm,
         health_condition: updatedUser.health_condition
       }
     });
 
   } catch (error) {
     console.error("Update Profile Error:", error);
-    res.status(500).json({ error: "Internal Server Error", details: error.message });
+    res.status(500).json({
+      error: "Internal Server Error",
+      details: error.message
+    });
   }
 });
 

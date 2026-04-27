@@ -43,11 +43,20 @@ const Navbar = () => {
 
       {/* Desktop Menu */}
       <ul className="hidden md:flex items-center gap-6">
-        <Link to="/" className="hover:text-[#00df9a] cursor-pointer">Home</Link>
+
+        <Link to="/" className="hover:text-[#00df9a]">Home</Link>
         <li className="hover:text-[#00df9a] cursor-pointer">Features</li>
         <li className="hover:text-[#00df9a] cursor-pointer">About</li>
         <li className="hover:text-[#00df9a] cursor-pointer">Contact</li>
 
+        {/* ✅ WHITE BUTTON */}
+        <Link to="/manage-Profile">
+          <button className="bg-white text-black px-4 py-2 rounded-lg font-semibold hover:bg-gray-200 transition">
+            ManageProfile
+          </button>
+        </Link>
+
+        {/* Auth */}
         {currentUser ? (
           <button
             onClick={handleSignOut}
@@ -64,7 +73,7 @@ const Navbar = () => {
         )}
       </ul>
 
-      {/* Mobile Icon */}
+      {/* Mobile Toggle */}
       <div onClick={() => setNav(!nav)} className="block md:hidden">
         {nav ? <AiOutlineClose size={25} /> : <AiOutlineMenu size={25} />}
       </div>
@@ -79,11 +88,22 @@ const Navbar = () => {
       >
         <h1 className="text-3xl font-bold text-[#00df9a] mb-6">NutriFy</h1>
 
-        <li className="py-4 border-b border-gray-600">Home</li>
+        <Link to="/" onClick={() => setNav(false)}>
+          <li className="py-4 border-b border-gray-600">Home</li>
+        </Link>
+
         <li className="py-4 border-b border-gray-600">Features</li>
         <li className="py-4 border-b border-gray-600">About</li>
         <li className="py-4 border-b border-gray-600">Contact</li>
 
+        {/* ✅ Manage Profile (Mobile) */}
+        <Link to="/profile" onClick={() => setNav(false)}>
+          <li className="py-4 border-b border-gray-600">
+            ManageProfile
+          </li>
+        </Link>
+
+        {/* Auth */}
         <div className="mt-6">
           {currentUser ? (
             <button
