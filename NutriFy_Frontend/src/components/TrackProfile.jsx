@@ -15,6 +15,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import { useSelector } from "react-redux";
 
 // Helper functions
 const formatValue = (value, decimals = 1) => {
@@ -224,11 +225,14 @@ const TrackProfile = () => {
   const [error, setError] = useState(null);
   const [data, setData] = useState(null);
 
+  const { currentUser } = useSelector((state) => state.user);
+  const userEmail = currentUser?.email;
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         // Get user email from localStorage or use fallback
-        const userEmail = localStorage.getItem("userEmail") || "ankita123@gmail.com";
+        const userEmail = currentUser.email;
         
         const response = await fetch(`http://localhost:5000/api/track/${userEmail}`);
         
@@ -238,6 +242,7 @@ const TrackProfile = () => {
         
         const result = await response.json();
         setData(result);
+        console.log("Fetched tracking data:", result);
       } catch (err) {
         setError(err.message || "Error connecting to server");
       } finally {
@@ -390,7 +395,7 @@ const TrackProfile = () => {
   }
 
   const averages = data.averages || {};
-  const historyCount = data.historyCount || 0;
+  const historyCount = data.totalDaysTracked || 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100 py-8 px-4">

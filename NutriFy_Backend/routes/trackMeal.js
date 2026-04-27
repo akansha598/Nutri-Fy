@@ -1,10 +1,14 @@
 const express = require("express");
 const router = express.Router();
 const Meal = require("../models/Meal");
-const AiMeal = require("../models/AiMeal"); // ✅ Import AiMeal
+const AiMeal = require("../models/AiMeal"); 
 const User = require("../models/User");
 const { getFoodData } = require("../utils/loadDataset");
 
+/**
+ * GET /api/track/:email
+ * Fetches and aggregates meal history from both AI and Manual logs
+ */
 router.get("/:email", async (req, res) => {
   try {
     const { email } = req.params;
@@ -15,7 +19,7 @@ router.get("/:email", async (req, res) => {
     const exclude = ["Food_Item", "Category", "Meal_Type", "displayString", "cleanName"];
     const nutrientColumns = allColumns.filter(col => !exclude.includes(col));
 
-    // Mapping for AiMeal keys (Gemini) to Dataset keys (CSV)
+    // Mapping for AiMeal keys (Gemini API) to Dataset keys (CSV Columns)
     const fieldMapping = {
       "protein": "Protein (g)",
       "carbs": "Carbohydrates (g)",
@@ -25,97 +29,108 @@ router.get("/:email", async (req, res) => {
     };
 
     // 2. Find the user
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    // 3. ✅ Fetch from BOTH collections
+    // 3. Fetch from BOTH collections
     const [standardMeals, aiMeals] = await Promise.all([
-      Meal.find({ userId: user._id }).sort({ createdAt: -1 }),
-      AiMeal.find({ email: email }).sort({ createdAt: -1 })
+      Meal.find({ userId: user._id }),
+      AiMeal.find({ email: email.toLowerCase() })
     ]);
 
-    // Combine them
-    const allHistory = [...standardMeals, ...aiMeals];
+    const allDocs = [...standardMeals, ...aiMeals];
 
-    // 4. Process combined history
-    const detailedHistory = allHistory.map((mealDoc) => {
-      const isAiMeal = !!mealDoc.items; // Check if it's from AiMeal schema
-      
-      const processedMeal = {
-        _id: mealDoc._id,
-        date: mealDoc.createdAt || mealDoc.date,
-        source: isAiMeal ? "AI Parser" : "Manual Log",
-        totalDayNutrition: {},
-        breakdown: isAiMeal ? { ai_detected: [] } : { breakfast: [], lunch: [], dinner: [] }
-      };
+    // 4. GROUP BY DATE (Aggregation logic)
+    const groupedByDate = {};
 
-      nutrientColumns.forEach(col => processedMeal.totalDayNutrition[col] = 0);
+    allDocs.forEach((doc) => {
+      // Normalize date to YYYY-MM-DD format
+      const rawDate = doc.createdAt || doc.date || new Date();
+      const dateKey = new Date(rawDate).toISOString().split('T')[0];
 
-      // --- Logic for Standard Meal Schema ---
+      // Initialize the day object if it doesn't exist
+      if (!groupedByDate[dateKey]) {
+        groupedByDate[dateKey] = {
+          date: dateKey,
+          totalDayNutrition: {},
+          breakdown: { breakfast: [], lunch: [], dinner: [], ai_detected: [] },
+          logCount: 0
+        };
+        nutrientColumns.forEach(col => groupedByDate[dateKey].totalDayNutrition[col] = 0);
+      }
+
+      groupedByDate[dateKey].logCount += 1;
+      const isAiMeal = !!doc.items;
+
+      // --- Logic for Standard Meal Schema (Manual) ---
       if (!isAiMeal) {
         ["breakfast", "lunch", "dinner"].forEach((type) => {
-          if (mealDoc[type]) {
-            mealDoc[type].forEach((entry) => {
+          if (doc[type] && Array.isArray(doc[type])) {
+            doc[type].forEach((entry) => {
               const foodInfo = foodDataSet.find(f => f.Food_Item === entry.item);
               if (foodInfo) {
                 const qty = entry.quantity || 1;
-                const itemNutri = { item: entry.item, quantity: qty };
+                const itemNutri = { item: entry.item, quantity: qty, source: "manual" };
                 
                 nutrientColumns.forEach(col => {
                   const val = parseFloat((foodInfo[col] * qty).toFixed(2)) || 0;
                   itemNutri[col] = val;
-                  processedMeal.totalDayNutrition[col] += val;
+                  groupedByDate[dateKey].totalDayNutrition[col] += val;
                 });
-                processedMeal.breakdown[type].push(itemNutri);
+                groupedByDate[dateKey].breakdown[type].push(itemNutri);
               }
             });
           }
         });
       } 
-      
-      // --- Logic for AiMeal Schema ---
+      // --- Logic for AiMeal Schema (AI Parser) ---
       else {
-        mealDoc.items.forEach((item) => {
+        doc.items.forEach((item) => {
           const qty = item.quantity || 1;
           const itemNutri = { 
             item: item.parsed_food_name, 
-            quantity: qty,
-            confidence: item.confidence 
+            quantity: qty, 
+            confidence: item.confidence,
+            source: "ai" 
           };
 
           nutrientColumns.forEach(col => {
-            // Find if this CSV column is mapped to a Gemini API key
             const apiKey = Object.keys(fieldMapping).find(k => fieldMapping[k] === col);
             let val = 0;
 
             if (apiKey && item.nutrition && item.nutrition[apiKey] !== undefined) {
               val = parseFloat((item.nutrition[apiKey] * qty).toFixed(2));
             } else {
-              // Fallback to dataset if AI nutrition for this specific column is missing
+              // Fallback to dataset
               const fallback = foodDataSet.find(f => f.Food_Item === item.parsed_food_name);
               if (fallback) val = parseFloat((fallback[col] * qty).toFixed(2));
             }
 
             itemNutri[col] = val;
-            processedMeal.totalDayNutrition[col] += val;
+            groupedByDate[dateKey].totalDayNutrition[col] += val;
           });
-          processedMeal.breakdown.ai_detected.push(itemNutri);
+          groupedByDate[dateKey].breakdown.ai_detected.push(itemNutri);
         });
       }
-
-      // Round daily totals
-      nutrientColumns.forEach(col => {
-        processedMeal.totalDayNutrition[col] = parseFloat(processedMeal.totalDayNutrition[col].toFixed(2));
-      });
-
-      return processedMeal;
     });
 
-    // 5. Calculate overall Average Intake
-    const dayCount = detailedHistory.length;
+    // 5. Finalize the History Array
+    const detailedHistory = Object.values(groupedByDate).map(day => {
+      // Round the totals for the day
+      nutrientColumns.forEach(col => {
+        day.totalDayNutrition[col] = parseFloat(day.totalDayNutrition[col].toFixed(2));
+      });
+      return day;
+    });
+
+    // Sort by date descending (Newest first)
+    detailedHistory.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    // 6. Calculate overall Averages based on unique days
+    const uniqueDayCount = detailedHistory.length;
     let overallAvg = {};
 
-    if (dayCount > 0) {
+    if (uniqueDayCount > 0) {
       const totals = detailedHistory.reduce((acc, day) => {
         nutrientColumns.forEach(col => {
           acc[col] = (acc[col] || 0) + day.totalDayNutrition[col];
@@ -124,16 +139,13 @@ router.get("/:email", async (req, res) => {
       }, {});
 
       nutrientColumns.forEach(col => {
-        overallAvg[col] = parseFloat((totals[col] / dayCount).toFixed(2));
+        overallAvg[col] = parseFloat((totals[col] / uniqueDayCount).toFixed(2));
       });
     }
 
-    // Sort combined list by date again to ensure mixed results are chronological
-    detailedHistory.sort((a, b) => new Date(b.date) - new Date(a.date));
-
     res.json({
       userEmail: email,
-      historyCount: dayCount,
+      totalDaysTracked: uniqueDayCount,
       averages: overallAvg,
       history: detailedHistory
     });
