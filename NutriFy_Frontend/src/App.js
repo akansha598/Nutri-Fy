@@ -20,6 +20,21 @@ function App() {
       <Hero takeInputRef={takeInputRef} />
       <Analytics />
 
+      {/* Daily Meals Section Header */}
+      <div className="py-10 px-4" style={{ 
+        background: 'linear-gradient(135deg, #0f3d2e 0%, #14532d 25%, #166534 50%, #14532d 75%, #0f3d2e 100%)', 
+        opacity: 0.95 
+      }}>
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4" style={{ color: '#ecfdf5' }}>
+            Add meals your way
+          </h2>
+          <p className="text-xl italic md:text-2xl font-light leading-relaxed" style={{ color: '#ecfdf5' }}>
+            Enter your meals manually or upload a photo, all in a quick and simple way.
+          </p>
+        </div>
+      </div>
+
       <div ref={takeInputRef}>
         <TakeInput />
       </div>

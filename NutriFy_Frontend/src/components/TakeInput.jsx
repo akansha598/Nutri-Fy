@@ -85,13 +85,13 @@ const MealSection = ({
     <div className='border-t pt-8'>
       <h4 className='text-lg font-semibold text-gray-700 mb-3 flex items-center gap-2'>
         <span className='w-2 h-2 bg-green-500 rounded-full'></span>
-        Or Describe Your Meal (AI Powered)
+        Or Describe Your Meal
       </h4>
       <textarea
         name={`${mealType}-description`}
         value={mealDescriptions[mealType] || ''}
         onChange={(e) => handleDescriptionChange(mealType, e.target.value)}
-        placeholder={`E.g., "I ate Doodh Daliya with high sweetness and 1 bowl of daliya with onion peas cucumber vegetables in it, plus a glass of milk"`}
+        placeholder={`E.g., Describe your meal with items and quantity (e.g., 2 chapati, dal, salad)`}
         className='w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-400 outline-none text-black mb-3 bg-white resize-vertical'
         rows={4}
         spellCheck='true'
@@ -110,8 +110,8 @@ const MealSection = ({
           </>
         ) : (
           <>
-            <span>✨</span>
-            Parse with AI
+            <span></span>
+            Analyze Meal
           </>
         )}
       </button>
@@ -375,8 +375,7 @@ const TakeInput = () => {
       </datalist>
 
       <div className='max-w-[1000px] mx-auto'>
-        <h1 className='text-4xl font-bold mb-2 text-center text-gray-800'>📝 Log Your Daily Meals</h1>
-        <p className='text-gray-600 mb-8 text-center text-lg'>Use manual input OR describe your meal - AI will do the rest!</p>
+        <h1 className='text-3xl font-bold mb-2 text-center text-gray-800'> Use manual input OR Describe your meal</h1>
 
         <div className='space-y-2'>
           <MealSection
@@ -426,13 +425,47 @@ const TakeInput = () => {
         />
         </div>
 
-        <button
-          type='button'
-          onClick={handleSubmit}
-          className='w-full mt-8 px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl font-bold text-lg hover:from-blue-700 hover:to-blue-800 shadow-xl transition-all active:scale-95'
-        >
-          💾 Save All Meals
-        </button>
+        {/* Action Buttons */}
+        <div className='mt-10 flex flex-col items-center gap-6'>
+          <button
+            type='button'
+            onClick={handleSubmit}
+            className='w-[320px] px-8 py-4 bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 text-white rounded-2xl font-semibold text-lg shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-600/30 hover:from-blue-600 hover:via-blue-700 hover:to-blue-800 transform hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-3'
+          >
+            <span className='text-xl'>💾</span>
+            Save All Meals
+          </button>
+          
+         <div className='flex justify-center mt-8'>
+  <button
+    type='button'
+    onClick={() => window.open('http://localhost:8501', '_blank')}
+    className='relative w-[400px] px-12 py-8 bg-gradient-to-br from-green-500 via-green-600 to-green-700 text-white rounded-3xl font-semibold text-lg shadow-[0_20px_40px_rgba(34,197,94,0.35)] hover:shadow-[0_25px_50px_rgba(34,197,94,0.45)] transform hover:-translate-y-1 active:scale-[0.97] transition-all duration-300 flex flex-col items-center justify-center gap-2 group overflow-hidden'
+  >
+    
+    {/* Glow overlay */}
+    <span className='absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition duration-300 rounded-3xl'></span>
+
+    {/* Border glow */}
+    <span className='absolute inset-0 rounded-3xl ring-1 ring-white/20'></span>
+
+    {/* Main content */}
+    <div className='relative flex items-center gap-3'>
+      <span className='text-3xl group-hover:scale-110 transition-transform duration-200'>
+        📷
+      </span>
+      <span className='text-2xl font-bold tracking-wide'>
+        Upload Meal Image
+      </span>
+    </div>
+
+    {/* Subtext */}
+    <span className='relative text-[15px] italic text-green-100/90 font-light'>
+      Add your meal faster with a clear picture
+    </span>
+  </button>
+</div>
+        </div>
       </div>
     </div>
   );
