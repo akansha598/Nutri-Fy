@@ -50,11 +50,13 @@ const Navbar = () => {
         <li className="hover:text-[#00df9a] cursor-pointer">Contact</li>
 
         {/* ✅ WHITE BUTTON */}
-        <Link to="/manage-Profile">
-          <button className="bg-white text-black px-4 py-2 rounded-lg font-semibold hover:bg-gray-200 transition">
-            ManageProfile
-          </button>
-        </Link>
+        {currentUser && (
+          <Link to="/manage-Profile">
+            <button className="bg-white text-black px-4 py-2 rounded-lg font-semibold hover:bg-gray-200 transition">
+              ManageProfile
+            </button>
+          </Link>
+        )}
 
         {/* Auth */}
         {currentUser ? (

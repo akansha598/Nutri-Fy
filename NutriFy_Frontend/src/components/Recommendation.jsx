@@ -48,9 +48,55 @@ const Recommendation = () => {
     }
   }, [currentUser]);
 
+  const MacroCard = ({ name, recommended, delta }) => {
+    const consumed = recommended - delta;
+
+    const percentage = Math.min((consumed / recommended) * 100, 100);
+
+    const isLow = delta > 0;
+    const isHigh = delta < 0 || delta === 0; // ⭐ your condition
+
+    return (
+      <div className="bg-white p-4 rounded-xl shadow-sm border">
+        <h3 className="text-gray-600 text-sm">{name}</h3>
+
+        <div className="flex justify-between items-center mt-1">
+          <span className="text-lg font-semibold">
+            {consumed.toFixed(1)} g
+          </span>
+
+          <span
+            className={`text-xs px-2 py-1 rounded ${isLow
+                ? "bg-yellow-100 text-yellow-700"
+                : isHigh
+                  ? "bg-red-100 text-red-700"
+                  : "bg-green-100 text-green-700"
+              }`}
+          >
+            {isLow
+              ? `Need +${delta.toFixed(1)}g`
+              : `High intake`}
+          </span>
+        </div>
+
+        {/* Progress bar */}
+        <div className="w-full bg-gray-200 h-2 rounded mt-2">
+          <div
+            className="h-2 rounded bg-green-500"
+            style={{ width: `${percentage}%` }}
+          />
+        </div>
+
+        <p className="text-xs text-gray-400 mt-1">
+          {percentage.toFixed(0)}% of daily goal
+        </p>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-green-900 text-white px-4 py-10 flex flex-col items-center">
-      
+
       {/* Back Button */}
       <button
         onClick={() => navigate("/manage-Profile")}
@@ -60,7 +106,7 @@ const Recommendation = () => {
       </button>
 
       <div className="bg-white text-black p-8 rounded-xl shadow-lg max-w-5xl w-full">
-        
+
         {/* Heading */}
         <h1 className="text-4xl font-bold text-green-700 mb-8 text-center">
           Personalized AI Recommendations
@@ -95,6 +141,36 @@ const Recommendation = () => {
             <div className="space-y-8">
 
               {/* Daily Macronutrient Targets */}
+              {/* ✅ Macronutrient Insights (NEW UI) */}
+              {recommendations.final_target && recommendations.delta_gap && (
+                <div className="border p-6 rounded-lg shadow-sm">
+                  <h2 className="text-2xl font-bold text-green-700 mb-6">
+                    Macronutrient Insights
+                  </h2>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+                    <MacroCard
+                      name="Protein"
+                      recommended={recommendations.final_target.protein}
+                      delta={recommendations.delta_gap.protein}
+                    />
+
+                    <MacroCard
+                      name="Carbs"
+                      recommended={recommendations.final_target.carbs}
+                      delta={recommendations.delta_gap.carbs}
+                    />
+
+                    <MacroCard
+                      name="Fat"
+                      recommended={recommendations.final_target.fat}
+                      delta={recommendations.delta_gap.fat}
+                    />
+
+                  </div>
+                </div>
+              )}
               {recommendations.final_target && (
                 <div className="border p-6 rounded-lg shadow-sm">
                   <h2 className="text-2xl font-bold text-green-700 mb-4">

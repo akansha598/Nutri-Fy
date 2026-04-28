@@ -28,8 +28,8 @@ const EditProfile = () => {
         weight: currentUser.weight || "",
         height: currentUser.height || "",
         health_condition: currentUser.health_condition
-        ? currentUser.health_condition.toLowerCase().replace(" ", "_")
-        : ""
+          ? currentUser.health_condition.toLowerCase().replace(" ", "_")
+          : ""
       });
     }
   }, [currentUser]);
@@ -182,13 +182,22 @@ const EditProfile = () => {
               className="w-full border px-4 py-2 rounded-md"
             >
               <option value="">Select Health Condition</option>
-              <option value="none">None</option>
+              <option value="healthy">Healthy</option>
               <option value="diabetes">Diabetes</option>
+              <option value="pcod">PCOD</option>
+              <option value="pcos">PCOS</option>
               <option value="hypertension">Hypertension</option>
-              <option value="heart_disease">Heart Disease</option>
-              <option value="thyroid">Thyroid</option>
+              <option value="bp">High BP</option>
               <option value="obesity">Obesity</option>
               <option value="underweight">Underweight</option>
+              <option value="muscle_gain">Muscle Gain</option>
+              <option value="thyroid">Thyroid</option>
+              <option value="hyperthyroidism">Hyperthyroidism</option>
+              <option value="ckd">Chronic Kidney Disease (CKD)</option>
+              <option value="kidney_disease">Kidney Disease</option>
+              <option value="heart_disease">Heart Disease</option>
+              <option value="cvd">Cardiovascular Disease (CVD)</option>
+              <option value="high_cholesterol">High Cholesterol</option>
             </select>
           </div>
 
