@@ -27,7 +27,9 @@ const EditProfile = () => {
         age: currentUser.age || "",
         weight: currentUser.weight || "",
         height: currentUser.height || "",
-        health_condition: currentUser.health_condition || ""
+        health_condition: currentUser.health_condition
+        ? currentUser.health_condition.toLowerCase().replace(" ", "_")
+        : ""
       });
     }
   }, [currentUser]);
