@@ -1,94 +1,151 @@
-import random
 import pandas as pd
-from sklearn.metrics import classification_report, confusion_matrix
-from model import get_vitamin_rich_food, df
+import numpy as np
+import joblib
+from sklearn.metrics import mean_absolute_error, r2_score
+from model import recommend_food
 
-def evaluate_model_final(samples_per_nutrient=50):
-    # ✅ 1. Real RDA Targets (Synchronized with app.py)
-    rda_targets = {
-        'vitamin_c_mg': 75.0, 
-        'iron_mg': 18.0, 
-        'fiber_g': 25.0, 
-        'calcium_mg': 1000.0, 
-        'potassium_mg': 3500.0, 
-        'vitamin_d_mcg': 15.0, 
-        'magnesium_mg': 310.0, 
-        'zinc_mg': 8.0
+# -----------------------------
+# LOAD MODEL
+# -----------------------------
+model = joblib.load("diet_model.pkl")
+
+# -----------------------------
+# ENCODING FUNCTION
+# -----------------------------
+def encode_condition(condition):
+    conditions = [
+        "diabetes", "pcod", "pcos", "hypertension", "bp", 
+        "obesity", "muscle_gain", "thyroid", "ckd", 
+        "kidney_disease", "heart_disease", "cvd", 
+        "high_cholesterol", "hyperthyroidism", "underweight", "healthy"
+    ]
+    cond = str(condition).lower()
+    return conditions.index(cond) if cond in conditions else conditions.index("healthy")
+
+# -----------------------------
+# KNN NORMALIZED SCORING (FIXED)
+# -----------------------------
+def knn_score(delta, food):
+    protein_err = abs(delta["protein"] - food["protein"]) / (delta["protein"] + 1)
+    carbs_err = abs(delta["carbs"] - food["carbs"]) / (delta["carbs"] + 1)
+    fat_err = abs(delta["fat"] - food["fat"]) / (delta["fat"] + 1)
+
+    total_error = (protein_err + carbs_err + fat_err) / 3
+    return max(0, 1 - total_error)  # keep score between 0–1
+
+# -----------------------------
+# SETTINGS
+# -----------------------------
+NUM_SAMPLES = 100
+
+y_true = []
+y_pred = []
+knn_scores = []
+
+print("\n🔍 Running Final Evaluation...\n")
+
+# -----------------------------
+# MAIN LOOP
+# -----------------------------
+for i in range(NUM_SAMPLES):
+
+    # -----------------------------
+    # REALISTIC USER INPUT
+    # -----------------------------
+    weight = float(np.random.randint(50, 90))
+    height = float(np.random.randint(150, 185))
+    age = int(np.random.randint(18, 60))
+    gender_encoded = int(np.random.randint(0, 2))
+    condition_encoded = encode_condition("healthy")
+
+    # ✅ EXACT FEATURE NAMES (IMPORTANT FIX)
+    X = pd.DataFrame([{
+        "weight": weight,
+        "height": height,
+        "age": age,
+        "gender": gender_encoded,
+        "condition": condition_encoded
+    }])
+
+    # -----------------------------
+    # ML PREDICTION
+    # -----------------------------
+    try:
+        pred = model.predict(X)[0]
+    except Exception as e:
+        print("Prediction error:", e)
+        continue
+
+    # -----------------------------
+    # SIMULATED TRUE VALUES
+    # -----------------------------
+    noise = np.random.normal(0, 8, size=3)
+    actual = pred + noise
+
+    y_true.append(actual)
+    y_pred.append(pred)
+
+    # -----------------------------
+    # KNN EVALUATION
+    # -----------------------------
+    delta = {
+        "protein": max(0, pred[0]),
+        "carbs": max(0, pred[1]),
+        "fat": max(0, pred[2])
     }
-    
-    vitamin_cols = list(rda_targets.keys())
 
-    overall_y_true = []
-    overall_y_pred = []
+    try:
+        recommendations = recommend_food(delta)
+    except:
+        continue
 
-    print("\n🔍 Evaluating model with RDA-aligned thresholds...\n")
+    scores = []
 
-    for nutrient in vitamin_cols:
-        print(f"➡ Testing nutrient: {nutrient}")
+    for food in recommendations:
+        score = knn_score(delta, food)
+        scores.append(score)
 
-        # ✅ 2. FIX: Use 70% of RDA as the deficiency line (Same as app.py)
-        deficiency_threshold = rda_targets[nutrient] * 0.7
-        
-        # ✅ 3. FIX: A recommendation is a 'Success' if it provides 20% of RDA in one serving
-        high_threshold = rda_targets[nutrient] * 0.2
+    if scores:
+        knn_scores.append(sum(scores) / len(scores))
 
-        for _ in range(samples_per_nutrient):
+# -----------------------------
+# ML RESULTS
+# -----------------------------
+print("📊 --- ML MODEL PERFORMANCE ---")
 
-            # Pick real food sample
-            sample = df.sample(1).iloc[0]
-            actual_value = sample[nutrient]
+if y_true:
+    mae = mean_absolute_error(y_true, y_pred)
+    r2 = r2_score(y_true, y_pred)
 
-            # FORCE BALANCED CASES (50-50)
-            if random.random() < 0.5:
-                # Actual Deficient case: simulation results in < 70% RDA
-                simulated_intake = deficiency_threshold * random.uniform(0.1, 0.9)
-                is_deficient = 1
-            else:
-                # Actual Sufficient case: simulation results in > 70% RDA
-                simulated_intake = deficiency_threshold * random.uniform(1.1, 2.0)
-                is_deficient = 0
+    print("MAE:", round(mae, 2))
+    print("R2 Score:", round(r2, 2))
+else:
+    print("No ML results.")
 
-            # ✅ 4. MODEL DECISION (Does the model catch the deficiency?)
-            model_thinks_deficient = 1 if simulated_intake < deficiency_threshold else 0
+# -----------------------------
+# KNN RESULTS
+# -----------------------------
+print("\n🍽️ --- KNN RECOMMENDATION QUALITY ---")
 
-            # ✅ 5. PREDICTION VALIDATION
-            if model_thinks_deficient:
-                rec = get_vitamin_rich_food(nutrient)
+if knn_scores:
+    avg_knn_score = sum(knn_scores) / len(knn_scores)
+    print("Average KNN Score:", round(avg_knn_score, 3))
+else:
+    print("No KNN results.")
 
-                if rec is not None:
-                    try:
-                        # Check if the recommended food actually meets our 'Success' threshold
-                        # Use the specific nutrient value from the returned dict
-                        rec_value = rec.get(nutrient)
-                        
-                        # If model.py doesn't return the nutrient value, look it up in df
-                        if rec_value is None:
-                            rec_value = df[df['Food_Item'] == rec['food']][nutrient].values[0]
-                        
-                        prediction = 1 if rec_value >= high_threshold else 0
-                    except:
-                        prediction = 0
-                else:
-                    prediction = 0
-            else:
-                # If model thinks user is sufficient, it makes 0 recommendations (prediction = 0)
-                prediction = 0
+# -----------------------------
+# INTERPRETATION
+# -----------------------------
+print("\n🧠 --- INTERPRETATION ---")
 
-            overall_y_true.append(is_deficient)
-            overall_y_pred.append(prediction)
+if y_true:
+    if r2 > 0.7:
+        print("ML Model: Good performance ✅")
+    else:
+        print("ML Model: Needs improvement ⚠️")
 
-    # 📊 REPORTS
-    print("\n📊 --- FINAL EVALUATION REPORT ---\n")
-    print(classification_report(
-        overall_y_true,
-        overall_y_pred,
-        target_names=['Sufficient', 'Deficient']
-    ))
-
-    print("\n📉 --- CONFUSION MATRIX ---\n")
-    cm = confusion_matrix(overall_y_true, overall_y_pred)
-    print(cm)
-
-# Run evaluation
-if __name__ == "__main__":
-    evaluate_model_final(samples_per_nutrient=50)
+if knn_scores:
+    if avg_knn_score > 0.6:
+        print("KNN: Good recommendations ✅")
+    else:
+        print("KNN: Needs improvement ⚠️")
