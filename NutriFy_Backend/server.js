@@ -6,6 +6,7 @@ const foodItemsRoute = require("./routes/fooditems"); // Adjust path if necessar
 const trackMealRoutes = require("./routes/trackMeal");
 const UpdateProfile = require("./routes/update_profile");
 
+
 require("dotenv").config();
 
 const app = express();
