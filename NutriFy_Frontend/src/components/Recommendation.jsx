@@ -53,7 +53,7 @@ const Recommendation = () => {
       
       {/* Back Button */}
       <button
-        onClick={() => navigate("/profile")}
+        onClick={() => navigate("/manage-Profile")}
         className="mb-6 text-sm underline"
       >
         ← Back to Profile

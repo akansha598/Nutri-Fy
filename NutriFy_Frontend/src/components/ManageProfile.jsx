@@ -4,9 +4,6 @@ import { useNavigate } from "react-router-dom";
 const ManageProfile = () => {
   const navigate = useNavigate();
 
-  const handleReset = () => {
-    alert("Reset Clicked!");
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-800 to-green-600 py-10 px-4">
@@ -41,13 +38,7 @@ const ManageProfile = () => {
             Edit
           </button>
 
-          {/* Reset Button */}
-          <button
-            onClick={handleReset}
-            className="w-full bg-gray-300 text-black py-2 rounded-md hover:bg-gray-400 transition"
-          >
-            Reset
-          </button>
+        
 
         </div>
 

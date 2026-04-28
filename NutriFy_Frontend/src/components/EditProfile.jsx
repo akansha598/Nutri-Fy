@@ -14,6 +14,7 @@ const EditProfile = () => {
     email: "",
     age: "",
     weight: "",
+    height: "",
     health_condition: ""
   });
 
@@ -25,6 +26,7 @@ const EditProfile = () => {
         email: currentUser.email || "",
         age: currentUser.age || "",
         weight: currentUser.weight || "",
+        height: currentUser.height || "",
         health_condition: currentUser.health_condition || ""
       });
     }
@@ -51,7 +53,8 @@ const EditProfile = () => {
         body: JSON.stringify({
           email: user.email,
           age: user.age,
-          weight_kg: user.weight,   // ✅ match backend
+          weight_kg: user.weight,
+          height_cm: user.height,
           health_condition: user.health_condition
         }),
       });
@@ -69,7 +72,7 @@ const EditProfile = () => {
       alert("Profile Updated Successfully!");
 
       // ✅ Navigate back
-      navigate("/profile");
+      navigate("/manage-Profile");
 
     } catch (err) {
       console.error(err);
@@ -82,7 +85,7 @@ const EditProfile = () => {
       <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-md">
 
         <button
-          onClick={() => navigate("/profile")}
+          onClick={() => navigate("/manage-Profile")}
           className="mb-4 text-sm text-green-700 hover:underline"
         >
           ← Back
@@ -103,8 +106,8 @@ const EditProfile = () => {
               type="text"
               name="name"
               value={user.name}
-              onChange={handleChange}
-              className="w-full border px-4 py-2 rounded-md"
+              disabled
+              className="w-full border px-4 py-2 rounded-md bg-gray-100 cursor-not-allowed"
             />
           </div>
 
@@ -117,8 +120,8 @@ const EditProfile = () => {
               type="email"
               name="email"
               value={user.email}
-              onChange={handleChange}
-              className="w-full border px-4 py-2 rounded-md"
+              disabled
+              className="w-full border px-4 py-2 rounded-md bg-gray-100 cursor-not-allowed"
             />
           </div>
 
@@ -145,6 +148,20 @@ const EditProfile = () => {
               type="number"
               name="weight"
               value={user.weight}
+              onChange={handleChange}
+              className="w-full border px-4 py-2 rounded-md"
+            />
+          </div>
+
+          {/* Height */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">
+              Height (cm)
+            </label>
+            <input
+              type="number"
+              name="height"
+              value={user.height}
               onChange={handleChange}
               className="w-full border px-4 py-2 rounded-md"
             />
