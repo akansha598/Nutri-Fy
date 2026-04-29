@@ -7,47 +7,37 @@ const NUTRITIONIX_BASE_URL = "https://trackapi.nutritionix.com/v2";
 /**
  * Get nutrition data for a food item using Nutritionix API
  */
+/**
+ * Main wrapper to get nutrition data.
+ * It prioritizes Gemini to ensure the full 40-attribute dataset 
+ * record is available for the CSV upgrade logic.
+ */
 async function getNutritionFromAPI(foodName, quantity, unit) {
   try {
-    if (!NUTRITIONIX_APP_ID || !NUTRITIONIX_APP_KEY) {
-      // Fallback to Gemini AI estimation
-      return await getNutritionFromGemini(foodName, quantity, unit);
-    }
+    console.log(`🔍 Fetching full nutritional profile for: ${quantity} ${unit} ${foodName}`);
 
-    const response = await axios.post(
-      `${NUTRITIONIX_BASE_URL}/natural/nutrients`,
-      {
-        query: `${quantity} ${unit} ${foodName}`,
-        timezone: "US/Eastern"
-      },
-      {
-        headers: {
-          "x-app-id": NUTRITIONIX_APP_ID,
-          "x-app-key": NUTRITIONIX_APP_KEY,
-          "Content-Type": "application/json"
-        }
-      }
-    );
+    // Call Gemini for the detailed 40-attribute record
+    const nutrition = await getNutritionFromGemini(foodName, quantity, unit);
 
-    if (response.data.foods && response.data.foods.length > 0) {
-      const food = response.data.foods[0];
-      return {
-        calories: Math.round(food.nf_calories || 0),
-        protein: parseFloat((food.nf_protein || 0).toFixed(2)),
-        carbs: parseFloat((food.nf_total_carbohydrate || 0).toFixed(2)),
-        fat: parseFloat((food.nf_total_fat || 0).toFixed(2)),
-        fiber: parseFloat((food.nf_dietary_fiber || 0).toFixed(2)),
-        sodium: Math.round(food.nf_sodium || 0)
-      };
-    }
-
-    // If no results, fallback to Gemini
-    return await getNutritionFromGemini(foodName, quantity, unit);
+    return {
+      calories: nutrition.calories || 0,
+      protein: nutrition.protein || 0,
+      carbs: nutrition.carbs || 0,
+      fat: nutrition.fat || 0,
+      fiber: nutrition.fiber || 0,
+      sodium: nutrition.sodium || 0,
+      weight_g: nutrition.weight_g || 0,
+      // Change: naming this 'full_dataset_record' to match mealParser.js logic
+      full_dataset_record: nutrition.full_dataset_record || null 
+    };
 
   } catch (error) {
-    console.error("Nutritionix API Error:", error.message);
-    // Fallback to Gemini AI estimation
-    return await getNutritionFromGemini(foodName, quantity, unit);
+    console.error("Critical Nutrition API Error:", error.message);
+    const basic = getBasicNutritionEstimate(foodName, quantity, unit);
+    return {
+      ...basic,
+      full_dataset_record: null
+    };
   }
 }
 
@@ -57,40 +47,69 @@ async function getNutritionFromAPI(foodName, quantity, unit) {
 async function getNutritionFromGemini(foodName, quantity, unit) {
   try {
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-
-    // ✅ FIXED: Changed v1beta to v1 and used gemini-1.5-flash
-    const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
-
-    const prompt = `Estimate the nutrition facts for: ${quantity} ${unit} of ${foodName}. 
-    Return ONLY a JSON object: {"calories": number, "protein": number, "carbs": number, "fat": number, "fiber": number, "sodium": number}`;
+// Use the v1beta endpoint with a modern model
+// ✅ CHANGE THIS LINE
+    const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;    
+    const prompt = `Estimate the full nutritional profile for ${quantity} ${unit} of ${foodName}.
+    IMPORTANT: Return ONLY a valid JSON object. Do not include Markdown formatting or backticks. 
+    Ensure every numeric field has a realistic value (do not return 0 unless the nutrient is actually absent).
+    
+    Keys to use:
+    {
+      "Food_Item": "${foodName}",
+      "Weight_per_Unit_g": number,
+      "Category": "string",
+      "Calories (kcal)": number,
+      "Protein (g)": number,
+      "Carbohydrates (g)": number,
+      "Fat (g)": number,
+      "Fiber (g)": number,
+      "Sugars (g)": number,
+      "Sodium (mg)": number,
+      "Cholesterol (mg)": number
+    }`;
 
     const response = await axios.post(GEMINI_API_URL, {
       contents: [{ parts: [{ text: prompt }] }]
     });
 
-    // Check if the response actually contains data
     if (response.data.candidates && response.data.candidates[0].content) {
-      const rawText = response.data.candidates[0].content.parts[0].text;
-      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+      let rawText = response.data.candidates[0].content.parts[0].text;
+      
+      // ✅ CLEANING: Remove markdown code blocks if present
+      const cleanJson = rawText.replace(/```json/g, "").replace(/```/g, "").trim();
+      
+      // Use regex to extract ONLY the part between the first { and last }
+      const jsonMatch = cleanJson.match(/\{[\s\S]*\}/);
+
+      // Inside getNutritionFromGemini, right after JSON.parse(jsonMatch[0])
+      const n = JSON.parse(jsonMatch[0]);
+      console.log("--------------------------");
+      console.log("RAW AI DATA FOR", foodName, ":", n["Calories (kcal)"]); 
+      console.log("--------------------------");
 
       if (jsonMatch) {
-        const nutrition = JSON.parse(jsonMatch[0]);
+        const n = JSON.parse(jsonMatch[0]);
+        
+        console.log(`✅ Successfully fetched AI data for ${foodName}`);
+
         return {
-          calories: Math.round(nutrition.calories || 0),
-          protein: parseFloat((nutrition.protein || 0).toFixed(2)),
-          carbs: parseFloat((nutrition.carbs || 0).toFixed(2)),
-          fat: parseFloat((nutrition.fat || 0).toFixed(2)),
-          fiber: parseFloat((nutrition.fiber || 0).toFixed(2)),
-          sodium: Math.round(nutrition.sodium || 0)
+          // Use the exact keys from the prompt
+          calories: Math.round(n["Calories (kcal)"] || 0),
+          protein: parseFloat(n["Protein (g)"] || 0),
+          carbs: parseFloat(n["Carbohydrates (g)"] || 0),
+          fat: parseFloat(n["Fat (g)"] || 0),
+          fiber: parseFloat(n["Fiber (g)"] || 0),
+          sodium: Math.round(n["Sodium (mg)"] || 0),
+          full_dataset_record: n // Contains all 40 attributes
         };
       }
     }
     
-    // If API response is weird, use basic fallback
+    console.warn(`⚠️ Gemini returned unexpected format for ${foodName}, using fallback.`);
     return getBasicNutritionEstimate(foodName, quantity, unit);
 
   } catch (error) {
-    // This will now show you EXACTLY what Google says is wrong
     console.error("Gemini Nutrition Error:", error.response?.data || error.message);
     return getBasicNutritionEstimate(foodName, quantity, unit);
   }

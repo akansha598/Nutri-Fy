@@ -85,7 +85,7 @@ const MealSection = ({
     <div className='border-t pt-8'>
       <h4 className='text-lg font-semibold text-gray-700 mb-3 flex items-center gap-2'>
         <span className='w-2 h-2 bg-green-500 rounded-full'></span>
-        Or Describe Your Meal
+        If your food item is not present then You can add here.
       </h4>
       <textarea
         name={`${mealType}-description`}
@@ -111,7 +111,7 @@ const MealSection = ({
         ) : (
           <>
             <span></span>
-            Analyze Meal
+            Add this food to dataset.
           </>
         )}
       </button>
