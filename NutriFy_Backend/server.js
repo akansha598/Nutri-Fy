@@ -5,6 +5,7 @@ const { loadDataset } = require("./utils/loadDataset");
 const foodItemsRoute = require("./routes/fooditems"); // Adjust path if necessary
 const trackMealRoutes = require("./routes/trackMeal");
 const UpdateProfile = require("./routes/update_profile");
+const foodEnricherRoutes = require("./routes/foodEnricher");
 
 
 require("dotenv").config();
@@ -39,3 +40,4 @@ app.use("/api/fooditems", foodItemsRoute);
 app.use("/api/track", trackMealRoutes);
 app.use("/api/auth", UpdateProfile);
 app.use("/api/parse-meal-description", require("./routes/mealParser"));
+app.use("/api/enrich", foodEnricherRoutes);
