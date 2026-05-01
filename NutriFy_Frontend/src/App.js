@@ -15,6 +15,7 @@ import ManageProfile from "./components/ManageProfile";
 import EditProfile from "./components/EditProfile";
 import Recommendation from "./components/Recommendation";
 import TrackProfile from "./components/TrackProfile";
+import Analyze from "./components/Analyze";
 
 
 import { ToastContainer } from "react-toastify";
@@ -91,6 +92,7 @@ function App() {
         <Route path="/edit-profile" element={<EditProfile />} />
         <Route path="/recommendations" element={<Recommendation />} />
         <Route path="/track-profile" element={<TrackProfile />} />
+        <Route path="/analyze" element={<Analyze />} />
       </Routes>
 
       <Footer />

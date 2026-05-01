@@ -49,7 +49,16 @@ const Navbar = () => {
         <li className="hover:text-[#00df9a] cursor-pointer">About</li>
         <li className="hover:text-[#00df9a] cursor-pointer">Contact</li>
 
-        {/* ✅ WHITE BUTTON */}
+        {/* ✅ NEW ANALYZE BUTTON */}
+        {currentUser && (
+          <Link to="/analyze">
+            <button className="bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-600 transition">
+              Analyze
+            </button>
+          </Link>
+        )}
+
+        {/* ✅ Manage Profile Button */}
         {currentUser && (
           <Link to="/manage-Profile">
             <button className="bg-white text-black px-4 py-2 rounded-lg font-semibold hover:bg-gray-200 transition">
@@ -98,7 +107,16 @@ const Navbar = () => {
         <li className="py-4 border-b border-gray-600">About</li>
         <li className="py-4 border-b border-gray-600">Contact</li>
 
-        {/* ✅ Manage Profile (Mobile) */}
+        {/* ✅ Analyze Button Mobile */}
+        {currentUser && (
+          <Link to="/analyze" onClick={() => setNav(false)}>
+            <li className="py-4 border-b border-gray-600">
+              Analyze
+            </li>
+          </Link>
+        )}
+
+        {/* ✅ Manage Profile Mobile */}
         <Link to="/profile" onClick={() => setNav(false)}>
           <li className="py-4 border-b border-gray-600">
             ManageProfile
