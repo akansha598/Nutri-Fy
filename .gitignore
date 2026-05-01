@@ -27,8 +27,9 @@ Thumbs.db
 .vscode/
 .idea/
 
-# ML / Data files
 *.csv
+!data/
+!data/*.csv
 *.pkl
 *.joblib
 
