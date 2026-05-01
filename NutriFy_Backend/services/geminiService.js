@@ -13,8 +13,8 @@ async function parseMealDescription(mealDescription, mealType) {
     }
 
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-    // ✅ Use gemini-1.5-flash for better stability and lower quota cost
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    // Use a currently supported Gemini model for meal parsing
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const prompt = `You are a nutrition analysis AI. Parse this meal description and extract individual food items with quantities.
 
