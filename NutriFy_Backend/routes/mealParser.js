@@ -2,11 +2,14 @@ const express = require("express");
 const router = express.Router();
 const { parseMealDescription } = require("../services/geminiService");
 const { getNutritionFromAPI } = require("../services/nutritionService");
-const AIMeal = require("../models/AiMeal"); 
+// No longer need AIMeal model for this route
+// const AIMeal = require("../models/AiMeal"); 
 const { getFoodData, appendFoodToCSV } = require("../utils/loadDataset");
 
 /**
  * POST /api/parse-meal-description
+ * Parses a meal description, fetches nutrition, and updates the CSV dataset if new foods are found.
+ * Does NOT save anything to MongoDB.
  */
 router.post("/", async (req, res) => {
   try {
@@ -15,11 +18,12 @@ router.post("/", async (req, res) => {
     if (!description || description.trim().length === 0) {
       return res.status(400).json({ error: "Description cannot be empty" });
     }
-    if (!email) {
-      return res.status(400).json({ error: "Email is required" });
-    }
+    // Email is no longer required for saving, but keep if you need it for logging
+    // if (!email) {
+    //   return res.status(400).json({ error: "Email is required" });
+    // }
 
-    // 1. Gemini breaks "Rajma Chawal" into [{food_name: "Rajma"}, {food_name: "Chawal"}]
+    // 1. Gemini breaks description into items
     const parsedItems = await parseMealDescription(description, mealType);
 
     if (!parsedItems || parsedItems.length === 0) {
@@ -33,32 +37,30 @@ router.post("/", async (req, res) => {
     const matchedItems = [];
     const currentDataset = getFoodData(); 
 
-    // 2. Loop through every item (Rajma, then Chawal)
+    // 2. Process each food item, update CSV if new
     for (const item of parsedItems) {
       try {
         const nutrition = await getNutritionFromAPI(item.food_name, item.quantity, item.unit);
         const data = nutrition.full_dataset_record || {};
 
-        // 3. Normalize name for search (removes extra spaces/case sensitivity)
         const searchName = item.food_name.trim().toLowerCase();
-
         const existsInCSV = currentDataset.find(f => 
           f.Food_Item && f.Food_Item.trim().toLowerCase() === searchName
         );
 
-        // 4. If "Rajma" is missing, add it. Next iteration: if "Chawal" is missing, add it.
+        // If food not in CSV, append it (dataset upgrade)
         if (!existsInCSV && nutrition.full_dataset_record) {
           console.log(`✨ New component detected: ${item.food_name}. Upgrading CSV...`);
           
           const newRecord = {
             ...nutrition.full_dataset_record,
-            Food_Item: item.food_name, // Ensure the specific name is used
+            Food_Item: item.food_name,
             Meal_Type: mealType || "Any"
           };
-
           await appendFoodToCSV(newRecord);
         }
 
+        // Build nutrition object for response (no DB save)
         matchedItems.push({
           parsed_food_name: item.food_name,
           quantity: item.quantity,
@@ -109,24 +111,14 @@ router.post("/", async (req, res) => {
       }
     }
 
-    // 5. Save to MongoDB
-    let savedMeal = null;
-    if (matchedItems.length > 0) {
-      savedMeal = await AIMeal.create({
-        email: email,
-        original_description: description,
-        mealType: mealType || "snack",
-        items: matchedItems
-      });
-    }
-
+    // ✅ Return response without saving to MongoDB
     res.json({
       success: true,
-      mealId: savedMeal ? savedMeal._id : null,
-      total_calories: savedMeal ? savedMeal.total_calories : 0,
+      // No mealId because nothing was saved
+      total_calories: matchedItems.reduce((sum, item) => sum + (item.nutrition.calories || 0), 0),
       items: matchedItems,
       original_description: description,
-      update_status: "Dataset synced for all components"
+      update_status: "Dataset synced for all components (no database save)"
     });
 
   } catch (error) {

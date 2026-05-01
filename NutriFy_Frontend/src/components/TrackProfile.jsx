@@ -70,9 +70,12 @@ const MealDayCard = ({ dayData }) => {
   const [expanded, setExpanded] = useState(false);
   const nutrition = dayData.totalDayNutrition || {};
 
+  // Helper: format numbers (e.g., 12.6 → 12.6, null → 0)
+  const formatValue = (val) => (val !== undefined && val !== null ? val : 0);
+
   return (
     <div className="bg-white rounded-xl shadow-md overflow-hidden mb-4">
-      {/* Daily Summary Header */}
+      {/* Daily Summary Header - unchanged */}
       <div className="bg-gradient-to-r from-green-600 to-green-700 p-4">
         <div className="flex justify-between items-center">
           <div>
@@ -94,7 +97,7 @@ const MealDayCard = ({ dayData }) => {
         </div>
       </div>
 
-      {/* Quick Stats */}
+      {/* Quick Stats - unchanged */}
       <div className="p-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
         <div>
           <span className="text-gray-500">Fiber: </span>
@@ -114,7 +117,7 @@ const MealDayCard = ({ dayData }) => {
         </div>
       </div>
 
-      {/* Expand Button */}
+      {/* Expand Button - unchanged */}
       <button
         onClick={() => setExpanded(!expanded)}
         className="w-full py-2 text-green-600 font-medium hover:bg-green-50 transition-colors border-t"
@@ -122,9 +125,10 @@ const MealDayCard = ({ dayData }) => {
         {expanded ? "▲ Hide Meal Breakdown" : "▼ View Meal Breakdown"}
       </button>
 
-      {/* Expanded Meal Details */}
+      {/* Expanded Meal Details - NEW: includes ai_detected */}
       {expanded && (
         <div className="p-4 bg-gray-50">
+          {/* 1. Breakfast, Lunch, Dinner (manual) */}
           {["breakfast", "lunch", "dinner"].map((mealType) => {
             const meals = dayData.breakdown?.[mealType] || [];
             if (meals.length === 0) return null;
@@ -135,42 +139,54 @@ const MealDayCard = ({ dayData }) => {
                   {mealType === "breakfast"
                     ? "🌅 Breakfast"
                     : mealType === "lunch"
-                    ? "🍽️ Lunch"
-                    : "🌙 Dinner"}
+                      ? "🍽️ Lunch"
+                      : "🌙 Dinner"}
                 </h4>
                 <div className="space-y-2">
                   {meals.map((item, idx) => (
-                    <div
-                      key={idx}
-                      className="bg-white p-3 rounded-lg shadow-sm flex justify-between items-center"
-                    >
-                      <div>
-                        <p className="font-medium text-gray-800">{item.item}</p>
-                        <p className="text-sm text-gray-500">
-                          Qty: {item.quantity}
-                        </p>
-                      </div>
-                      <div className="text-right text-sm">
-                        <p className="text-orange-600">
-                          {formatValue(item["Calories (kcal)"])} cal
-                        </p>
-                        <p className="text-gray-500">
-                          P: {formatValue(item["Protein (g)"])}g • C:{" "}
-                          {formatValue(item["Carbohydrates (g)"])}g • F:{" "}
-                          {formatValue(item["Fat (g)"])}g
-                        </p>
-                      </div>
-                    </div>
+                    <MealItem key={idx} item={item} />
                   ))}
                 </div>
               </div>
             );
           })}
+
+          {/* 2. AI Detected meals */}
+          {dayData.breakdown?.ai_detected?.length > 0 && (
+            <div className="mb-4">
+              <h4 className="font-semibold text-purple-700 mb-2">🤖 AI Detected</h4>
+              <div className="space-y-2">
+                {dayData.breakdown.ai_detected.map((item, idx) => (
+                  <MealItem key={`ai-${idx}`} item={item} />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
   );
 };
+
+// Reusable component for a single meal item
+const MealItem = ({ item }) => (
+  <div className="bg-white p-3 rounded-lg shadow-sm flex justify-between items-center">
+    <div>
+      <p className="font-medium text-gray-800">{item.item}</p>
+      <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
+    </div>
+    <div className="text-right text-sm">
+      <p className="text-orange-600">
+        {formatValue(item["Calories (kcal)"])} cal
+      </p>
+      <p className="text-gray-500">
+        P: {formatValue(item["Protein (g)"])}g • C:{" "}
+        {formatValue(item["Carbohydrates (g)"])}g • F:{" "}
+        {formatValue(item["Fat (g)"])}g
+      </p>
+    </div>
+  </div>
+);
 
 // Micronutrient Card Component
 const MicronutrientCard = ({ label, value, unit, dailyValue }) => (
@@ -201,13 +217,12 @@ const InsightCard = ({ type, message }) => {
 
   return (
     <div
-      className={`rounded-lg p-4 mb-3 ${
-        isWarning
-          ? "bg-amber-50 border-l-4 border-amber-500"
-          : isSuccess
+      className={`rounded-lg p-4 mb-3 ${isWarning
+        ? "bg-amber-50 border-l-4 border-amber-500"
+        : isSuccess
           ? "bg-green-50 border-l-4 border-green-500"
           : "bg-gray-50 border-l-4 border-gray-400"
-      }`}
+        }`}
     >
       <p className={`${isWarning ? "text-amber-800" : isSuccess ? "text-green-800" : "text-gray-800"}`}>
         {isWarning && "⚠️ "}
@@ -233,13 +248,13 @@ const TrackProfile = () => {
       try {
         // Get user email from localStorage or use fallback
         const userEmail = currentUser.email;
-        
+
         const response = await fetch(`http://localhost:5000/api/track/${userEmail}`);
-        
+
         if (!response.ok) {
           throw new Error("Failed to fetch tracking data");
         }
-        
+
         const result = await response.json();
         setData(result);
         console.log("Fetched tracking data:", result);

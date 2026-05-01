@@ -1,24 +1,17 @@
 const axios = require("axios");
 
-const NUTRITIONIX_APP_ID = process.env.NUTRITIONIX_APP_ID;
-const NUTRITIONIX_APP_KEY = process.env.NUTRITIONIX_APP_KEY;
-const NUTRITIONIX_BASE_URL = "https://trackapi.nutritionix.com/v2";
+// USDA API configuration
+const USDA_API_KEY = process.env.USDA_API_KEY || "Lta2m54lMWHbahwLHZri8kxjwGVaAsGBTeUHpUMO";
+const USDA_BASE_URL = "https://api.nal.usda.gov/fdc/v1/foods/search";
 
 /**
- * Get nutrition data for a food item using Nutritionix API
- */
-/**
- * Main wrapper to get nutrition data.
- * It prioritizes Gemini to ensure the full 40-attribute dataset 
- * record is available for the CSV upgrade logic.
+ * Main wrapper: fetch nutrition from USDA → fallback to basic estimate
  */
 async function getNutritionFromAPI(foodName, quantity, unit) {
+  console.log(`🔍 Fetching nutrition for: ${quantity} ${unit} ${foodName} from USDA`);
+
   try {
-    console.log(`🔍 Fetching full nutritional profile for: ${quantity} ${unit} ${foodName}`);
-
-    // Call Gemini for the detailed 40-attribute record
-    const nutrition = await getNutritionFromGemini(foodName, quantity, unit);
-
+    const nutrition = await getNutritionFromUSDA(foodName, quantity, unit);
     return {
       calories: nutrition.calories || 0,
       protein: nutrition.protein || 0,
@@ -27,12 +20,11 @@ async function getNutritionFromAPI(foodName, quantity, unit) {
       fiber: nutrition.fiber || 0,
       sodium: nutrition.sodium || 0,
       weight_g: nutrition.weight_g || 0,
-      // Change: naming this 'full_dataset_record' to match mealParser.js logic
-      full_dataset_record: nutrition.full_dataset_record || null 
+      full_dataset_record: nutrition.full_dataset_record || null
     };
-
   } catch (error) {
-    console.error("Critical Nutrition API Error:", error.message);
+    console.error("USDA API Error:", error.message);
+    console.warn(`Falling back to basic estimate for ${foodName}`);
     const basic = getBasicNutritionEstimate(foodName, quantity, unit);
     return {
       ...basic,
@@ -42,116 +34,162 @@ async function getNutritionFromAPI(foodName, quantity, unit) {
 }
 
 /**
- * Get nutrition data using Gemini AI estimation
+ * Fetch nutrition data from USDA FoodData Central API
+ * Returns a full 40+ attribute record matching the dataset columns
  */
-async function getNutritionFromGemini(foodName, quantity, unit) {
-  try {
-    const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-// Use the v1beta endpoint with a modern model
-// ✅ CHANGE THIS LINE
-    const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;    
-    const prompt = `Estimate the full nutritional profile for ${quantity} ${unit} of ${foodName}.
-    IMPORTANT: Return ONLY a valid JSON object. Do not include Markdown formatting or backticks. 
-    Ensure every numeric field has a realistic value (do not return 0 unless the nutrient is actually absent).
-    
-    Keys to use:
-    {
-      "Food_Item": "${foodName}",
-      "Weight_per_Unit_g": number,
-      "Category": "string",
-      "Calories (kcal)": number,
-      "Protein (g)": number,
-      "Carbohydrates (g)": number,
-      "Fat (g)": number,
-      "Fiber (g)": number,
-      "Sugars (g)": number,
-      "Sodium (mg)": number,
-      "Cholesterol (mg)": number
-    }`;
+async function getNutritionFromUSDA(foodName, quantity, unit) {
+  // Search for the food
+  const searchUrl = `${USDA_BASE_URL}?api_key=${USDA_API_KEY}&query=${encodeURIComponent(foodName)}&pageSize=1`;
+  const searchRes = await axios.get(searchUrl);
 
-    const response = await axios.post(GEMINI_API_URL, {
-      contents: [{ parts: [{ text: prompt }] }]
-    });
-
-    if (response.data.candidates && response.data.candidates[0].content) {
-      let rawText = response.data.candidates[0].content.parts[0].text;
-      
-      // ✅ CLEANING: Remove markdown code blocks if present
-      const cleanJson = rawText.replace(/```json/g, "").replace(/```/g, "").trim();
-      
-      // Use regex to extract ONLY the part between the first { and last }
-      const jsonMatch = cleanJson.match(/\{[\s\S]*\}/);
-
-      // Inside getNutritionFromGemini, right after JSON.parse(jsonMatch[0])
-      const n = JSON.parse(jsonMatch[0]);
-      console.log("--------------------------");
-      console.log("RAW AI DATA FOR", foodName, ":", n["Calories (kcal)"]); 
-      console.log("--------------------------");
-
-      if (jsonMatch) {
-        const n = JSON.parse(jsonMatch[0]);
-        
-        console.log(`✅ Successfully fetched AI data for ${foodName}`);
-
-        return {
-          // Use the exact keys from the prompt
-          calories: Math.round(n["Calories (kcal)"] || 0),
-          protein: parseFloat(n["Protein (g)"] || 0),
-          carbs: parseFloat(n["Carbohydrates (g)"] || 0),
-          fat: parseFloat(n["Fat (g)"] || 0),
-          fiber: parseFloat(n["Fiber (g)"] || 0),
-          sodium: Math.round(n["Sodium (mg)"] || 0),
-          full_dataset_record: n // Contains all 40 attributes
-        };
-      }
-    }
-    
-    console.warn(`⚠️ Gemini returned unexpected format for ${foodName}, using fallback.`);
-    return getBasicNutritionEstimate(foodName, quantity, unit);
-
-  } catch (error) {
-    console.error("Gemini Nutrition Error:", error.response?.data || error.message);
-    return getBasicNutritionEstimate(foodName, quantity, unit);
+  if (!searchRes.data.foods || searchRes.data.foods.length === 0) {
+    throw new Error(`No USDA record found for "${foodName}"`);
   }
+
+  const food = searchRes.data.foods[0];
+  const nutrients = food.foodNutrients || [];
+
+  // Helper: find nutrient by name
+  const getNutrient = (name) => {
+    const n = nutrients.find(n => n.nutrientName.toLowerCase() === name.toLowerCase());
+    return n ? n.value : 0;
+  };
+
+  // Map USDA nutrient names to our fields
+  const calories = getNutrient("Energy");
+  const protein = getNutrient("Protein");
+  const carbs = getNutrient("Carbohydrate, by difference");
+  const fat = getNutrient("Total lipid (fat)");
+  const fiber = getNutrient("Fiber, total dietary");
+  const sugars = getNutrient("Sugars, total including NLEA");
+  const sodium = getNutrient("Sodium, Na");
+  const cholesterol = getNutrient("Cholesterol");
+
+  // Micronutrients
+  const calcium = getNutrient("Calcium, Ca");
+  const iron = getNutrient("Iron, Fe");
+  const magnesium = getNutrient("Magnesium, Mg");
+  const phosphorus = getNutrient("Phosphorus, P");
+  const potassium = getNutrient("Potassium, K");
+  const zinc = getNutrient("Zinc, Zn");
+  const vitaminA = getNutrient("Vitamin A, RAE");
+  const vitaminC = getNutrient("Vitamin C, total ascorbic acid");
+  const vitaminD = getNutrient("Vitamin D (D2 + D3)");
+  const vitaminE = getNutrient("Vitamin E (alpha-tocopherol)");
+  const vitaminK = getNutrient("Vitamin K (phylloquinone)");
+  const thiamin = getNutrient("Thiamin");
+  const riboflavin = getNutrient("Riboflavin");
+  const niacin = getNutrient("Niacin");
+  const vitaminB6 = getNutrient("Vitamin B-6");
+  const vitaminB12 = getNutrient("Vitamin B-12");
+  const folate = getNutrient("Folate, total");
+  
+  // Fats breakdown
+  const saturatedFat = getNutrient("Fatty acids, total saturated");
+  const monounsaturatedFat = getNutrient("Fatty acids, total monounsaturated");
+  const polyunsaturatedFat = getNutrient("Fatty acids, total polyunsaturated");
+  const transFat = getNutrient("Fatty acids, total trans");
+  const omega3 = getNutrient("Omega-3 fatty acids") || getNutrient("18:3 n-3 c,c,c (Alpha-Linolenic)") || 0;
+  const omega6 = getNutrient("Omega-6 fatty acids") || getNutrient("18:2 undifferentiated") || 0;
+
+  // Weight per unit (default serving weight in grams)
+  let weightPerUnit = food.servingSize ? parseFloat(food.servingSize) : 100;
+  if (food.servingSizeUnit && food.servingSizeUnit.toLowerCase().includes("g")) {
+    weightPerUnit = parseFloat(food.servingSize);
+  } else if (food.servingSize && food.servingSizeUnit) {
+    weightPerUnit = 100;
+  }
+
+  // Scale nutrients based on quantity and unit
+  let multiplier = quantity;
+  if (unit === 'bowl') multiplier = quantity * 1.5;
+  else if (unit === 'cup') multiplier = quantity * 1.2;
+  else if (unit === 'plate') multiplier = quantity * 2;
+  else if (unit === 'unit') multiplier = quantity * 1;
+  else if (unit === 'g' || unit === 'gram') multiplier = quantity / weightPerUnit;
+  else multiplier = quantity; // assume quantity in servings
+
+  const scale = multiplier;
+  const scaled = (val) => parseFloat((val * scale).toFixed(2));
+
+  // Build the full dataset record with EXACT column names (including spaces/parentheses)
+  const fullRecord = {
+    "Food_Item": food.description || foodName,
+    "Category": food.foodCategory || "Unknown",
+    "Calories (kcal)": scaled(calories),
+    "Protein (g)": scaled(protein),
+    "Carbohydrates (g)": scaled(carbs),
+    "Fat (g)": scaled(fat),
+    "Fiber (g)": scaled(fiber),
+    "Sugars (g)": scaled(sugars),
+    "Sodium (mg)": scaled(sodium),
+    "Cholesterol (mg)": scaled(cholesterol),
+    "Meal_Type": "Any",
+    "Water_Intake (ml)": 0,                // fixed key name
+    "Weight_per_Unit_g": weightPerUnit,
+    "fiber_g": scaled(fiber),
+    "sugar_g": scaled(sugars),
+    "calcium_mg": scaled(calcium),
+    "iron_mg": scaled(iron),
+    "magnesium_mg": scaled(magnesium),
+    "phosphorus_mg": scaled(phosphorus),
+    "potassium_mg": scaled(potassium),
+    "sodium_mg_detailed": scaled(sodium),
+    "zinc_mg": scaled(zinc),
+    "vitamin_a_mcg": scaled(vitaminA),
+    "vitamin_b1_mg": scaled(thiamin),
+    "vitamin_b2_mg": scaled(riboflavin),
+    "vitamin_b3_mg": scaled(niacin),
+    "vitamin_b6_mg": scaled(vitaminB6),
+    "vitamin_b12_mcg": scaled(vitaminB12),
+    "vitamin_c_mg": scaled(vitaminC),
+    "vitamin_d_mcg": scaled(vitaminD),
+    "vitamin_e_mg": scaled(vitaminE),
+    "vitamin_k_mcg": scaled(vitaminK),
+    "folate_mcg": scaled(folate),
+    "saturated_fat_g": scaled(saturatedFat),
+    "monounsaturated_fat_g": scaled(monounsaturatedFat),
+    "polyunsaturated_fat_g": scaled(polyunsaturatedFat),
+    "trans_fat_g": scaled(transFat),
+    "cholesterol_mg_detailed": scaled(cholesterol),
+    "omega_3_g": scaled(omega3),
+    "omega_6_g": scaled(omega6)
+  };
+
+  // Return the same shape expected by getNutritionFromAPI
+  return {
+    calories: fullRecord["Calories (kcal)"],
+    protein: fullRecord["Protein (g)"],
+    carbs: fullRecord["Carbohydrates (g)"],
+    fat: fullRecord["Fat (g)"],
+    fiber: fullRecord["Fiber (g)"],
+    sodium: fullRecord["Sodium (mg)"],
+    weight_g: fullRecord["Weight_per_Unit_g"],
+    full_dataset_record: fullRecord
+  };
 }
 
 /**
- * Basic nutrition estimates for common foods when APIs fail
+ * Basic fallback estimates (kept from original)
  */
 function getBasicNutritionEstimate(foodName, quantity, unit) {
   const food = foodName.toLowerCase();
 
-  // Basic nutrition database for common Indian foods
   const nutritionData = {
     'chapatti': { calories: 120, protein: 3, carbs: 20, fat: 3, fiber: 2, sodium: 150 },
     'roti': { calories: 120, protein: 3, carbs: 20, fat: 3, fiber: 2, sodium: 150 },
     'naan': { calories: 150, protein: 4, carbs: 25, fat: 4, fiber: 1, sodium: 200 },
     'rice': { calories: 130, protein: 3, carbs: 28, fat: 0, fiber: 0, sodium: 0 },
     'dal': { calories: 120, protein: 7, carbs: 20, fat: 3, fiber: 4, sodium: 200 },
-    'dahl': { calories: 120, protein: 7, carbs: 20, fat: 3, fiber: 4, sodium: 200 },
-    'lentils': { calories: 120, protein: 7, carbs: 20, fat: 3, fiber: 4, sodium: 200 },
     'chicken': { calories: 165, protein: 25, carbs: 0, fat: 7, fiber: 0, sodium: 70 },
     'fish': { calories: 120, protein: 20, carbs: 0, fat: 5, fiber: 0, sodium: 60 },
-    'vegetables': { calories: 30, protein: 2, carbs: 6, fat: 0, fiber: 2, sodium: 20 },
-    'salad': { calories: 20, protein: 1, carbs: 4, fat: 0, fiber: 1, sodium: 10 },
     'bread': { calories: 80, protein: 3, carbs: 15, fat: 1, fiber: 1, sodium: 120 },
-    'potato': { calories: 90, protein: 2, carbs: 20, fat: 0, fiber: 2, sodium: 5 },
-    'onion': { calories: 40, protein: 1, carbs: 9, fat: 0, fiber: 2, sodium: 5 },
-    'tomato': { calories: 20, protein: 1, carbs: 4, fat: 0, fiber: 1, sodium: 5 },
     'egg': { calories: 70, protein: 6, carbs: 1, fat: 5, fiber: 0, sodium: 60 },
-    'milk': { calories: 60, protein: 3, carbs: 5, fat: 3, fiber: 0, sodium: 45 },
-    'yogurt': { calories: 60, protein: 4, carbs: 4, fat: 3, fiber: 0, sodium: 45 },
-    'cheese': { calories: 110, protein: 7, carbs: 1, fat: 9, fiber: 0, sodium: 180 },
-    'butter': { calories: 100, protein: 0, carbs: 0, fat: 11, fiber: 0, sodium: 90 },
-    'oil': { calories: 120, protein: 0, carbs: 0, fat: 14, fiber: 0, sodium: 0 },
-    'sugar': { calories: 20, protein: 0, carbs: 5, fat: 0, fiber: 0, sodium: 0 },
-    'fruits': { calories: 60, protein: 1, carbs: 15, fat: 0, fiber: 2, sodium: 5 },
-    'apple': { calories: 95, protein: 0, carbs: 25, fat: 0, fiber: 4, sodium: 2 },
     'banana': { calories: 105, protein: 1, carbs: 27, fat: 0, fiber: 3, sodium: 1 },
+    'apple': { calories: 95, protein: 0, carbs: 25, fat: 0, fiber: 4, sodium: 2 },
     'orange': { calories: 60, protein: 1, carbs: 15, fat: 0, fiber: 3, sodium: 0 }
   };
 
-  // Try to find the food in our database
   let baseNutrition = null;
   for (const [key, value] of Object.entries(nutritionData)) {
     if (food.includes(key)) {
@@ -159,17 +197,14 @@ function getBasicNutritionEstimate(foodName, quantity, unit) {
       break;
     }
   }
-
-  // If not found, use a generic estimate
   if (!baseNutrition) {
     baseNutrition = { calories: 100, protein: 3, carbs: 15, fat: 4, fiber: 1, sodium: 50 };
   }
 
-  // Convert quantity based on unit
   let multiplier = quantity;
-  if (unit === 'bowl') multiplier = quantity * 1.5; // Bowl = 1.5 servings
-  if (unit === 'cup') multiplier = quantity * 1.2; // Cup = 1.2 servings
-  if (unit === 'plate') multiplier = quantity * 2; // Plate = 2 servings
+  if (unit === 'bowl') multiplier = quantity * 1.5;
+  else if (unit === 'cup') multiplier = quantity * 1.2;
+  else if (unit === 'plate') multiplier = quantity * 2;
 
   return {
     calories: Math.round(baseNutrition.calories * multiplier),
@@ -177,7 +212,9 @@ function getBasicNutritionEstimate(foodName, quantity, unit) {
     carbs: parseFloat((baseNutrition.carbs * multiplier).toFixed(2)),
     fat: parseFloat((baseNutrition.fat * multiplier).toFixed(2)),
     fiber: parseFloat((baseNutrition.fiber * multiplier).toFixed(2)),
-    sodium: Math.round(baseNutrition.sodium * multiplier)
+    sodium: Math.round(baseNutrition.sodium * multiplier),
+    weight_g: 0,
+    full_dataset_record: null
   };
 }
 

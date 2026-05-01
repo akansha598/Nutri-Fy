@@ -16,32 +16,36 @@ async function parseMealDescription(mealDescription, mealType) {
     // Use a currently supported Gemini model for meal parsing
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-    const prompt = `You are a nutrition analysis AI. Parse this meal description and extract individual food items with quantities.
+    const prompt = `You are a meal parsing AI. Your only job is to extract EVERY individual food item from the given meal description.
 
 Meal Description: "${mealDescription}"
 Meal Type: ${mealType}
 
-CRITICAL INSTRUCTIONS:
-1. Break down combined dishes into their main components. 
-   Example: "Rajma Chawal" -> [{"food_name": "Rajma", ...}, {"food_name": "Chawal", ...}]
-   Example: "Dal Tadka and 2 Roti" -> [{"food_name": "Dal Tadka", ...}, {"food_name": "Roti", "quantity": 2, ...}]
-2. Use specific Indian/Common food names.
-3. Return ONLY a JSON array. No markdown, no backticks, no explanation.
+CRITICAL RULES:
+1. EXTRACT ALL food items present. Do not skip any.
+2. Break down combined dish names into their main components.
+   Examples:
+   - "Rajma Chawal" → ["Rajma", "Chawal"]
+   - "Dal Tadka and 2 Roti" → ["Dal Tadka", "Roti"]
+   - "Paneer Butter Masala with 3 Naan" → ["Paneer Butter Masala", "Naan"]
+3. For each food item, estimate a realistic quantity and unit if not explicit.
+4. Use common Indian/global food names as given.
+5. Return ONLY a JSON array. No markdown, no backticks, no extra text.
 
-Each item must have:
-- "food_name": (string)
-- "quantity": (number)
-- "unit": (piece, bowl, cup, tbsp, tsp, g, ml, unit)
-- "description": (string)
-- "confidence": (0.0-1.0)
+Each object in the array must have:
+- "food_name": string (exact name of the food)
+- "quantity": number (default 1 if not mentioned)
+- "unit": string (piece, bowl, cup, tbsp, tsp, g, ml, unit, etc.)
+- "description": string (the original phrase that matched this item)
+- "confidence": number (0.0-1.0, 0.8 if explicit quantity/unit, 0.5 if inferred)
 
-NOW parse this: "${mealDescription}"`;
+Now extract ALL food items from: "${mealDescription}"`;
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
     let text = response.text();
 
-    // ✅ Robust cleaning to handle potential markdown or extra text
+    // Robust cleaning to handle potential markdown or extra text
     const cleanJson = text.replace(/```json/g, "").replace(/```/g, "").trim();
     const jsonMatch = cleanJson.match(/\[[\s\S]*\]/);
 
@@ -67,7 +71,7 @@ function localParseMealDescription(mealDescription, mealType) {
     .replace(/\s+/g, ' ')
     .trim();
 
-  // Split by more delimiters to catch combined dishes manually
+  // Split by delimiters to catch combined dishes manually
   const parts = cleaned
     .split(/,|\band\b|\bwith\b|\bplus\b/i)
     .map(segment => segment.trim())
