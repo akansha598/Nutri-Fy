@@ -29,14 +29,13 @@ router.post("/enrich", async (req, res) => {
       });
     }
 
-    // 2. If not found, "Enrich" it using Gemini
-    console.log(`✨ ${foodName} not found. Enriching dataset via AI...`);
+    console.log(`✨ ${foodName} not found. Enriching dataset...`);
     
     // We assume quantity 1 and unit 'unit' or 'bowl' for the initial enrichment
     const nutrition = await getNutritionFromAPI(foodName, 1, "unit");
 
     if (!nutrition.full_dataset_record) {
-      throw new Error("AI failed to generate a full nutritional profile.");
+      throw new Error("failed to generate a full nutritional profile.");
     }
 
     // 3. Prepare the record for the CSV
@@ -51,7 +50,7 @@ router.post("/enrich", async (req, res) => {
 
     res.json({
       success: true,
-      source: "gemini_ai",
+      source: "USDA_API",
       message: "Dataset updated successfully",
       data: newRecord
     });

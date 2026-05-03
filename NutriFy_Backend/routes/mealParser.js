@@ -23,7 +23,6 @@ router.post("/", async (req, res) => {
     //   return res.status(400).json({ error: "Email is required" });
     // }
 
-    // 1. Gemini breaks description into items
     const parsedItems = await parseMealDescription(description, mealType);
 
     if (!parsedItems || parsedItems.length === 0) {
@@ -102,7 +101,7 @@ router.post("/", async (req, res) => {
             omega_3: data.omega_3_g || 0,
             omega_6: data.omega_6_g || 0
           },
-          source: existsInCSV ? "local_dataset" : "gemini_ai"
+          source: existsInCSV ? "local_dataset" : "USDA_API"
         });
 
       } catch (error) {

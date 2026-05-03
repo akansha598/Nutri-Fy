@@ -39,7 +39,11 @@ async function getNutritionFromAPI(foodName, quantity, unit) {
  */
 async function getNutritionFromUSDA(foodName, quantity, unit) {
   // Search for the food
-  const searchUrl = `${USDA_BASE_URL}?api_key=${USDA_API_KEY}&query=${encodeURIComponent(foodName)}&pageSize=1`;
+
+  const isRawRequested = foodName.toLowerCase().includes("raw");
+  const refinedQuery = isRawRequested ? foodName : `${foodName} cooked`;
+  
+  const searchUrl = `${USDA_BASE_URL}?api_key=${USDA_API_KEY}&query=${encodeURIComponent(refinedQuery)}&pageSize=1`;
   const searchRes = await axios.get(searchUrl);
 
   if (!searchRes.data.foods || searchRes.data.foods.length === 0) {
