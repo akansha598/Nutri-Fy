@@ -31,35 +31,27 @@ NutriFy is a modern health and nutrition platform designed to help users track m
 
 * Node.js
 * Express.js
+* JWT Authentication
 
 ## Database
 
 * MongoDB
 
-## Additional Tools
+## AI/ML
 
-* REST APIs
-* JWT Authentication
-* AI/ML Integration 
+* FastAPI
+* KNN
+* Scikit-learn, Numpy, Pandas
+* Joblib
 
----
+## GenAI
 
-# 📂 Project Structure
+* Gemini API
 
-```bash
-NutriFy/
-│
-├── client/             # Frontend files
-├── server/             # Backend files
-├── models/             # Database models
-├── routes/             # API routes
-├── controllers/        # Business logics
-├── public/             # Static assets
-├── package.json
-└── README.md
-```
+
 
 ---
+
 
 # 🚀 Getting Started
 
@@ -111,16 +103,6 @@ npm start
 
 ---
 
-# 📸 Screenshots
-
-Add your project screenshots here.
-
-| Home Page                                    | Dashboard                                         |
-| -------------------------------------------- | ------------------------------------------------- |
-| ![Home](https://via.placeholder.com/400x200) | ![Dashboard](https://via.placeholder.com/400x200) |
-
----
-
 # 🔮 Future Enhancements
 
 * 🧠 AI-based meal planning
@@ -142,31 +124,9 @@ Contributions are welcome!
 4. Push to the branch
 5. Open a Pull Request
 
----
-
-# 🧪 Running Tests
-
-```bash
-npm test
-```
 
 ---
 
-# 📄 License
 
-This project is licensed under the MIT License.
-
----
-
-# 👩‍💻 Author
-
-**Akansha Vasistha**
-
-* GitHub: [https://github.com/your-github-username](https://github.com/your-github-username)
-* LinkedIn: [https://linkedin.com/in/your-linkedin](https://linkedin.com/in/your-linkedin)
-
----
-
-# ⭐ Show Your Support
 
 If you like this project, give it a ⭐ on GitHub!
