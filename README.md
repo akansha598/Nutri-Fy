@@ -160,12 +160,13 @@ PORT=5000
 
 # 🔮 Future Enhancements
 
-* 🧠 AI-based meal planning
-* ⌚ Fitness tracker integration
-* 🥦 Barcode food scanner
-* 📱 Mobile application support
-* 🌐 Multi-language support
-* 📊 Advanced analytics dashboard
+* AI-based recipe planning
+* Fitness tracker integration
+* Real-time calorie estimation from uploaded meals
+* Smartwatch/Fitness tracker integration
+* Daily meal reminders and notifications
+* Grocery recommendation system based on diet plans
+* Progress tracking with weekly/monthly reports
 
 ---
 
