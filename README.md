@@ -95,10 +95,12 @@ JWT_SECRET=your_secret_key
 PORT=5000
 ```
 
-### 5️⃣ Start the development server
+### 5️⃣ Pre-training / Pre-setup steps
 
+* train ML model
 ```bash
-npm start
+cd ML_Recommendation
+python train_model.py
 ```
 
 ---
