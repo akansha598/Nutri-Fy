@@ -65,6 +65,8 @@ Make sure you have installed:
 
 ---
 
+
+
 ## Installation
 
 ### 1️⃣ Clone the repository
@@ -81,13 +83,71 @@ cd NutriFy
 
 ### 3️⃣ Install dependencies
 
+#### Backend
+
 ```bash
+cd NutriFy_Backend
 npm install
 ```
 
-### 4️⃣ Setup environment variables
+#### Frontend
 
-Create a `.env` file in the root directory and add:
+```bash
+cd NutriFy_Frontend
+npm install
+```
+
+#### ML Recommendation Engine
+
+```bash
+cd ML_Recommendation
+pip install -r requirements.txt
+```
+
+#### Streamlit Dashboard
+
+```bash
+pip install streamlit
+```
+
+---
+
+# ▶️ Steps to Run the Project
+
+Open **4 separate terminals** and run the following commands:
+
+## 🖥️ Terminal 1 (Backend Server)
+
+```bash
+cd NutriFy_Backend
+npm run dev
+```
+
+## 🌐 Terminal 2 (Frontend)
+
+```bash
+cd NutriFy_Frontend
+npm run dev
+```
+
+## 🤖 Terminal 3 (ML Recommendation Engine)
+
+```bash
+cd ML_Recommendation
+python app.py
+```
+
+## 📊 Terminal 4 (Streamlit Dashboard)
+
+```bash
+streamlit run python.py
+```
+
+---
+
+## ⚙️ Environment Variables
+
+Create a `.env` file in the backend directory and add:
 
 ```env
 MONGO_URI=your_mongodb_connection_string
@@ -95,15 +155,8 @@ JWT_SECRET=your_secret_key
 PORT=5000
 ```
 
-### 5️⃣ Pre-training / Pre-setup steps
-
-* train ML model
-```bash
-cd ML_Recommendation
-python train_model.py
-```
-
 ---
+
 
 # 🔮 Future Enhancements
 
@@ -126,9 +179,5 @@ Contributions are welcome!
 4. Push to the branch
 5. Open a Pull Request
 
-
 ---
 
-
-
-If you like this project, give it a ⭐ on GitHub!
