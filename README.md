@@ -71,9 +71,6 @@ Make sure you have installed:
 
 ### 1️⃣ Clone the repository
 
-```bash
-git clone https://github.com/your-username/NutriFy.git
-```
 
 ### 2️⃣ Navigate to the project directory
 
