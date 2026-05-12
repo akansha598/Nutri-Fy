@@ -6,7 +6,7 @@ This file contains screenshots and summary statistics collected from the Google 
 
 The survey was conducted to understand users’ food habits, nutrition awareness, health goals, and expectations from a nutrition-based platform.
 
-## Total Responses
+### Total Responses
 
 **Total responses:** 43
 
