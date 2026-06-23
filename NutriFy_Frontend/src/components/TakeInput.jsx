@@ -375,7 +375,7 @@ const TakeInput = () => {
       </datalist>
 
       <div className='max-w-[1000px] mx-auto'>
-        <h1 className='text-3xl font-bold mb-2 text-center text-gray-800'> Use manual input OR Describe your meal</h1>
+        <h1 className='text-3xl font-bold mb-2 text-center text-gray-800'> Use manual input</h1>
 
         <div className='space-y-2'>
           <MealSection

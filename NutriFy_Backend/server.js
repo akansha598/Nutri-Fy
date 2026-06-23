@@ -1,7 +1,5 @@
 require("dotenv").config();
 
-
-
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -10,6 +8,7 @@ const foodItemsRoute = require("./routes/fooditems"); // Adjust path if necessar
 const trackMealRoutes = require("./routes/trackMeal");
 const UpdateProfile = require("./routes/update_profile");
 const foodEnricherRoutes = require("./routes/foodEnricher");
+const indianEnricher = require("./routes/indianFoodEnricher"); 
 
 const app = express();
 
@@ -42,3 +41,4 @@ app.use("/api/track", trackMealRoutes);
 app.use("/api/auth", UpdateProfile);
 app.use("/api/parse-meal-description", require("./routes/mealParser"));
 app.use("/api/enrich", foodEnricherRoutes);
+app.use("/api/indian-enrich", indianEnricher);

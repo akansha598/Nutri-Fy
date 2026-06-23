@@ -46,7 +46,22 @@ def generate_smart_diet_plan(delta, final_target, current_avg, condition):
         'potassium_mg': 3500.0,
         'vitamin_d_mcg': 15.0,
         'magnesium_mg': 310.0,
-        'zinc_mg': 8.0
+        'zinc_mg': 8.0,
+
+        # Added vitamins
+        'vitamin_a_mcg': 900.0,
+        'vitamin_b1_mg': 1.2,
+        'vitamin_b2_mg': 1.3,
+        'vitamin_b3_mg': 16.0,
+        'vitamin_b6_mg': 1.3,
+        'vitamin_b12_mcg': 2.4,
+        'vitamin_e_mg': 15.0,
+        'vitamin_k_mcg': 120.0,
+        'folate_mcg': 400.0,
+
+        # Optional advanced
+        'protein_g': 50.0,
+        'omega_3_g': 1.6
     }
 
     # 2. Trigger deficiency if user is below 70% of the RDA

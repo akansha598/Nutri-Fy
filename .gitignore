@@ -11,6 +11,8 @@ build/
 venv/
 .next/
 out/
+nutrify_env/
+nutrify_env_311/
 
 # Logs
 logs/
