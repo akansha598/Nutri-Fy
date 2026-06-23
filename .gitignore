@@ -30,7 +30,6 @@ Thumbs.db
 .idea/
 
 # ML / Data files
-*.pkl
 *.joblib
 
 # Python cache (for ML part)
