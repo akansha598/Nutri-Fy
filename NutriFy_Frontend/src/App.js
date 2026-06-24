@@ -16,6 +16,7 @@ import EditProfile from "./components/EditProfile";
 import Recommendation from "./components/Recommendation";
 import TrackProfile from "./components/TrackProfile";
 import Analyze from "./components/Analyze";
+import ResetPassword from "./components/ResetPassword";
 
 
 import { ToastContainer } from "react-toastify";
@@ -93,6 +94,7 @@ function App() {
         <Route path="/recommendations" element={<Recommendation />} />
         <Route path="/track-profile" element={<TrackProfile />} />
         <Route path="/analyze" element={<Analyze />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
       </Routes>
 
       <Footer />

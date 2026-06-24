@@ -13,7 +13,8 @@ const Navbar = () => {
 
   const handleSignOut = async () => {
     try {
-      const res = await fetch('/api/auth/signout', {
+      const baseUrl = process.env.REACT_APP_API_URL || '';
+      const res = await fetch(`${baseUrl}/api/auth/signout`, {
         method: 'POST',
       });
 

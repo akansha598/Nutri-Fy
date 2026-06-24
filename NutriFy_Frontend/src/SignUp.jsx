@@ -4,6 +4,9 @@ import { toast } from 'react-toastify';
 import Food2 from './assets/Food2.jpg';
 
 export default function SignUp() {
+
+  const baseUrl = process.env.REACT_APP_API_URL || '';
+
   const [formData, setFormData] = useState({
     gender: '',
     health_condition: 'healthy' // Default value
@@ -39,7 +42,7 @@ export default function SignUp() {
     try {
       setLoading(true);
 
-      const res = await fetch('/api/auth/signup', {
+      const res = await fetch(`${baseUrl}/api/auth/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

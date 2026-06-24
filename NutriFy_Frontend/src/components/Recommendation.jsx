@@ -13,7 +13,8 @@ const Recommendation = () => {
   useEffect(() => {
     const fetchRecommendations = async () => {
       try {
-        const res = await fetch("/api/recommend", {
+        const baseUrl = process.env.REACT_APP_API_URL || '';
+        const res = await fetch(`${baseUrl}/api/recommend`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

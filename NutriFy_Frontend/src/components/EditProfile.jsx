@@ -47,7 +47,8 @@ const EditProfile = () => {
     e.preventDefault();
 
     try {
-      const res = await fetch("/api/auth/update-profile", {
+      const baseUrl = process.env.REACT_APP_API_URL || '';
+      const res = await fetch(`${baseUrl}/api/auth/update-profile`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",

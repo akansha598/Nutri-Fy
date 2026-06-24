@@ -41,7 +41,9 @@ router.post("/", async (req, res) => {
     const avgIntake = calculateAverage(allHistory);
 
     // 4. Send the combined average and user data to FastAPI
-    const response = await axios.post("http://127.0.0.1:8000/recommend", {
+    const fastApiBaseUrl = process.env.FASTAPI_URL || "http://127.0.0.1:8000";
+
+    const response = await axios.post(`${fastApiBaseUrl}/recommend`, {
       health_condition: user.health_condition || user.healthCondition || "healthy",
       weight_kg: parseFloat(user.weight_kg || user.weight || 70),
       height_cm: parseFloat(user.height_cm || user.height || 170),

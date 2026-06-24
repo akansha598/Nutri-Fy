@@ -248,8 +248,8 @@ const TrackProfile = () => {
       try {
         // Get user email from localStorage or use fallback
         const userEmail = currentUser.email;
-
-        const response = await fetch(`http://localhost:5000/api/track/${userEmail}`);
+        const baseUrl = process.env.REACT_APP_API_URL || '';
+        const response = await fetch(`${baseUrl}/api/track/${userEmail}`);
 
         if (!response.ok) {
           throw new Error("Failed to fetch tracking data");

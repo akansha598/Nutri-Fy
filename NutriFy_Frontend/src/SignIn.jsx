@@ -25,7 +25,9 @@ export default function SignIn() {
     try {
       dispatch(signInStart());
 
-      const res = await fetch('/api/auth/login', {
+      const baseUrl = process.env.REACT_APP_API_URL || '';
+
+      const res = await fetch(`${baseUrl}/api/auth/login` , {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
@@ -138,6 +140,16 @@ export default function SignIn() {
               </span>
             </Link>
           </div>
+
+          <div className='flex gap-2 items-center justify-center pt-2'>
+            
+            <Link to='/reset-password'>
+              <span className='text-[#00df9a] text-sm hover:underline'>
+                Forget Password
+              </span>
+            </Link>
+          </div>
+
         </form>
       </div>
 

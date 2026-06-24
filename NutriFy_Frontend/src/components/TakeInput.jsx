@@ -194,7 +194,8 @@ const TakeInput = () => {
   useEffect(() => {
     const fetchFoods = async () => {
       try {
-        const response = await axios.get("api/fooditems/food-list");
+        const baseUrl = process.env.REACT_APP_API_URL || '';
+        const response = await axios.get(`${baseUrl}/api/fooditems/food-list`);
         setFoodList(response.data);
       } catch (err) {
         console.error("Could not load food list:", err);
@@ -256,7 +257,8 @@ const TakeInput = () => {
     const userEmail = currentUser?.user?.email || currentUser?.email;
 
     try {
-      const response = await axios.post("/api/parse-meal-description", {
+      const baseUrl = process.env.REACT_APP_API_URL || '';
+      const response = await axios.post(`${baseUrl}/api/parse-meal-description`, {
         description: trimmed,
         mealType,
         email: userEmail
@@ -336,7 +338,8 @@ const TakeInput = () => {
     console.log("MEAL DATA PREPARED (Manual + AI Parsed):", mealData);
 
     try {
-      const response = await axios.post("api/meals/add", mealData);
+      const baseUrl = process.env.REACT_APP_API_URL || '';
+      const response = await axios.post(`${baseUrl}/api/meals/add`, mealData);
       if (response.data) {
         toast.success("✅ Success! Your daily meals have been logged.");
         setMeals({

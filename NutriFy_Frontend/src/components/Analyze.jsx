@@ -33,7 +33,8 @@ const Analyze = () => {
   useEffect(() => {
     const fetchFoodList = async () => {
       try {
-        const res = await fetch("http://localhost:5000/api/fooditems/food-list");
+        const baseUrl = process.env.REACT_APP_API_URL || '';
+        const res = await fetch(`${baseUrl}/api/fooditems/food-list`);
         const data = await res.json();
 
         if (res.ok) {
@@ -98,7 +99,8 @@ const Analyze = () => {
         return setError("Please enter a food name");
       }
 
-      const res = await fetch("http://localhost:5000/api/enrich/enrich", {
+      const baseUrl = process.env.REACT_APP_API_URL || '';
+      const res = await fetch(`${baseUrl}/api/enrich/enrich`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -134,7 +136,8 @@ const Analyze = () => {
         return setError("Please enter a food name first");
       }
 
-      const res = await fetch("http://localhost:5000/api/enrich/enrich", {
+      const baseUrl = process.env.REACT_APP_API_URL || '';
+      const res = await fetch(`${baseUrl}/api/enrich/enrich`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -154,8 +157,9 @@ const Analyze = () => {
       alert("✅ Food successfully added to dataset!");
       setFoodData(data.data);
 
+      
       const updatedRes = await fetch(
-        "http://localhost:5000/api/fooditems/food-list"
+        `${baseUrl}/api/fooditems/food-list`
       );
       const updatedData = await updatedRes.json();
 
